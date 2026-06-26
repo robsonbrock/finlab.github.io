@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="260" viewBox="0 0 800 260">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#1A1D27"/>
+      <stop offset="40%" stop-color="#0F1117"/>
+      <stop offset="100%" stop-color="#141828"/>
+    </linearGradient>
+  </defs>
+
+  <!-- fundo -->
+  <rect width="800" height="260" rx="12" fill="url(#bg)"/>
+
+  <!-- detalhes decorativos -->
+  <circle cx="660" cy="60"  r="140" fill="rgba(0,179,131,0.06)"/>
+  <circle cx="700" cy="220" r="100" fill="rgba(0,122,90,0.05)"/>
+  <circle cx="40"  cy="210" r="90"  fill="rgba(255,255,255,0.02)"/>
+
+  <!-- linha de acento verde à esquerda -->
+  <rect x="0" y="0" width="4" height="260" rx="2" fill="#00B383"/>
+
+  <!-- badge -->
+  <rect x="48" y="44" width="70" height="28" rx="14" fill="#00B383"/>
+  <text x="83" y="63" font-family="system-ui, sans-serif" font-size="13" font-weight="700"
+        fill="white" text-anchor="middle" letter-spacing="2">QUIZ</text>
+
+  <!-- título -->
+  <text x="48" y="116" font-family="system-ui, sans-serif" font-size="38" font-weight="800"
+        fill="white">Pix por QR Code</text>
+
+  <!-- subtítulo linha 1 -->
+  <text x="48" y="150" font-family="system-ui, sans-serif" font-size="15" fill="rgba(255,255,255,0.7)">
+    20 perguntas sobre BR Code, API Pix, SPI, DICT e muito mais.
+  </text>
+  <!-- subtítulo linha 2 -->
+  <text x="48" y="170" font-family="system-ui, sans-serif" font-size="15" fill="rgba(255,255,255,0.7)">
+    Responda todas e clique em Enviar.
+  </text>
+
+  <!-- separador -->
+  <line x1="48" y1="196" x2="752" y2="196" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+  <!-- indicadores -->
+  <text x="48" y="227" font-family="system-ui, sans-serif" font-size="13" fill="rgba(255,255,255,0.5)">
+    Teste seu conhecimento sobre o ecossistema Pix
+  </text>
+
+  <!-- ícone de seta → direito -->
+  <circle cx="750" cy="220" r="18" fill="rgba(0,179,131,0.2)"/>
+  <text x="750" y="226" font-family="system-ui, sans-serif" font-size="18" fill="#00B383"
+        text-anchor="middle">→</text>
+</svg>
