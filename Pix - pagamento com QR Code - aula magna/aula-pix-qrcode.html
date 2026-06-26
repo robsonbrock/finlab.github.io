@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pix por QR Code — Aula Magna</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='translate(16,16) rotate(45)'%3E%3Crect x='-4.5' y='-13.5' width='9' height='9' rx='2.5' fill='%23DA7756'/%3E%3Crect x='-4.5' y='4.5' width='9' height='9' rx='2.5' fill='%23DA7756'/%3E%3Crect x='-13.5' y='-4.5' width='9' height='9' rx='2.5' fill='%23DA7756'/%3E%3Crect x='4.5' y='-4.5' width='9' height='9' rx='2.5' fill='%23DA7756'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    --verde-pix: #00b383;
+    --verde-escuro: #007a5a;
+    --verde-claro: #e6f9f4;
+    --azul: #1a3a5c;
+    --azul-claro: #e8f0f8;
+    --cinza: #f5f5f5;
+    --cinza-texto: #555;
+    --laranja: #e07b00;
+    --vermelho: #c0392b;
+    --roxo: #7b2d8b;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --borda: #e0e0e0;
+    --sombra: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: #222;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .hero {
+    background: linear-gradient(135deg, #00b383 0%, #007a5a 50%, #1a3a5c 100%);
+    color: white;
+    padding: 60px 40px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -40px;
+    width: 250px; height: 250px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .hero-inner { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 { font-size: 2.6rem; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  .hero p { font-size: 1.1rem; opacity: 0.85; max-width: 600px; margin-bottom: 24px; }
+  .hero-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-size: 0.85rem; opacity: 0.75;
+  }
+  .hero-meta span::before { content: '• '; }
+
+  /* PAGE LAYOUT */
+  .page-wrap { display: block; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 350px;
+    overflow-y: auto;
+    background: var(--azul);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+    z-index: 100;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  .sidebar-head {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .sidebar-badge {
+    width: 26px; height: 26px;
+    background: var(--verde-pix);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; color: white;
+    flex-shrink: 0;
+  }
+  .sidebar-title { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.88); line-height: 1.25; }
+  .sidebar-sub   { font-size: 0.68rem; color: rgba(255,255,255,0.4); font-weight: 400; }
+
+  .sidebar-nav { padding: 10px 0 36px; }
+
+  .sb-s-link {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 7px 16px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    font-size: 0.79rem;
+    font-weight: 600;
+    line-height: 1.35;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sb-s-link:hover { color: white; background: rgba(255,255,255,0.05); }
+  .sb-s-link.active {
+    color: var(--verde-pix);
+    border-left-color: var(--verde-pix);
+    background: rgba(0,179,131,0.08);
+  }
+  .sb-s-num {
+    font-size: 0.64rem; font-weight: 800;
+    color: var(--verde-pix);
+    background: rgba(0,179,131,0.15);
+    padding: 1px 5px; border-radius: 8px;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .sb-s-link.active .sb-s-num { background: rgba(0,179,131,0.28); }
+
+  .sb-h3-link {
+    display: block;
+    padding: 4px 16px 4px 34px;
+    color: rgba(255,255,255,0.38);
+    text-decoration: none;
+    font-size: 0.71rem;
+    line-height: 1.35;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sb-h3-link:hover { color: rgba(255,255,255,0.72); }
+  .sb-h3-link.active {
+    color: rgba(255,255,255,0.88);
+    border-left-color: rgba(0,179,131,0.45);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .sb-sep { margin: 10px 16px; border: none; border-top: 1px solid rgba(255,255,255,0.1); }
+  .sb-dev-link {
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 7px 16px;
+    color: rgba(255,128,128,0.75);
+    text-decoration: none;
+    font-size: 0.79rem; font-weight: 600;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sb-dev-link:hover { color: #ff8a80; background: rgba(255,128,128,0.06); }
+  .sb-dev-link.active { color: #ff8a80; border-left-color: #ff8a80; background: rgba(255,128,128,0.07); }
+
+  .sidebar-toggle {
+    display: none;
+    position: fixed; bottom: 18px; right: 18px;
+    background: var(--azul); color: white;
+    border: none; width: 42px; height: 42px;
+    border-radius: 50%; cursor: pointer;
+    font-size: 1rem; z-index: 200;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    align-items: center; justify-content: center;
+  }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 99;
+  }
+  .sidebar-overlay.visible { display: block; }
+
+  @media (max-width: 960px) {
+    .sidebar-toggle { display: flex; }
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.24s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.28);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .container { margin-left: 0; }
+  }
+
+  /* MAIN */
+  .container { margin-left: 350px; max-width: 980px; padding: 40px; }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 60px;
+    scroll-margin-top: 24px;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+  }
+  .section-num {
+    width: 40px; height: 40px;
+    background: var(--verde-pix);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .section-title { font-size: 1.6rem; font-weight: 700; color: var(--azul); }
+
+  h3 {
+    font-size: 1.1rem; color: var(--azul);
+    margin: 24px 0 12px;
+    padding-left: 12px;
+    border-left: 3px solid var(--verde-pix);
+  }
+  h4 { font-size: 0.95rem; color: var(--cinza-texto); margin: 16px 0 8px; font-weight: 600; }
+  p { margin-bottom: 12px; color: #333; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--sombra);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card-tipo {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--sombra);
+    border-top: 4px solid var(--verde-pix);
+  }
+  .card-tipo.dinamico { border-top-color: var(--azul); }
+  .card-tipo.composto { border-top-color: var(--roxo); }
+  .card-tipo h3 { border-left: none; padding-left: 0; margin-top: 0; font-size: 1rem; }
+  .tipo-badge {
+    display: inline-block;
+    font-size: 0.72rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    margin-bottom: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-estatico { background: #e6f9f4; color: var(--verde-escuro); }
+  .badge-dinamico { background: var(--azul-claro); color: var(--azul); }
+  .badge-composto { background: #f3e6f9; color: var(--roxo); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  thead tr { background: var(--azul); color: white; }
+  thead th { padding: 10px 14px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: var(--cinza); }
+  tbody tr:hover { background: var(--verde-claro); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+  .obrig { color: var(--vermelho); font-weight: 700; font-size: 0.8rem; }
+  .opcion { color: var(--cinza-texto); font-size: 0.8rem; }
+
+  /* FLOW */
+  .flow {
+    display: flex; flex-direction: column; gap: 0;
+    margin: 20px 0;
+  }
+  .flow-step {
+    display: flex; gap: 16px; align-items: flex-start;
+    position: relative;
+  }
+  .flow-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 17px; top: 40px;
+    width: 2px; height: calc(100% - 16px);
+    background: var(--borda);
+  }
+  .step-num {
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: var(--verde-pix);
+    color: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+    position: relative; z-index: 1;
+  }
+  .flow-step.alt .step-num { background: var(--azul); }
+  .flow-step.warn .step-num { background: var(--laranja); }
+  .step-content { padding-bottom: 20px; flex: 1; }
+  .step-content strong { display: block; font-size: 0.9rem; color: var(--azul); margin-bottom: 4px; }
+  .step-content p { margin: 0; font-size: 0.88rem; color: var(--cinza-texto); }
+
+  /* CODE */
+  .code-block {
+    background: #1e2a3a;
+    color: #a8d8a8;
+    padding: 20px;
+    border-radius: 10px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    overflow-x: auto;
+    margin: 16px 0;
+    line-height: 1.7;
+    white-space: pre;
+  }
+  .code-block .key { color: #79c0ff; }
+  .code-block .val { color: #a8d8a8; }
+  .code-block .str { color: #f0a46a; }
+  .code-block .comment { color: #8b949e; font-style: italic; }
+  .code-block .label { color: #d2a8ff; }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .callout-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .callout-body { font-size: 0.9rem; }
+  .callout-body strong { display: block; margin-bottom: 4px; }
+  .callout.info { background: var(--azul-claro); border-left: 4px solid var(--azul); }
+  .callout.warn { background: #fff8e6; border-left: 4px solid var(--laranja); }
+  .callout.tip { background: var(--verde-claro); border-left: 4px solid var(--verde-pix); }
+  .callout.danger { background: #fef0ef; border-left: 4px solid var(--vermelho); }
+
+  /* FORMULA */
+  .formula {
+    background: var(--azul);
+    color: white;
+    padding: 20px 24px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin: 16px 0;
+  }
+  .formula span { color: #7dd4c4; }
+
+  /* COMPARISON */
+  .compare {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 16px 0;
+  }
+  .compare-col { border-radius: 10px; padding: 18px; }
+  .compare-col.estatico { background: var(--verde-claro); border: 1px solid #b3e8d8; }
+  .compare-col.dinamico { background: var(--azul-claro); border: 1px solid #b3ccdd; }
+  .compare-col h4 { color: var(--azul); margin-top: 0; }
+  .compare-col ul { list-style: none; padding: 0; }
+  .compare-col ul li { padding: 5px 0; font-size: 0.88rem; padding-left: 18px; position: relative; }
+  .compare-col.estatico ul li::before { content: '✓'; position: absolute; left: 0; color: var(--verde-pix); font-weight: 700; }
+  .compare-col.dinamico ul li::before { content: '✦'; position: absolute; left: 0; color: var(--azul); font-weight: 700; }
+
+  /* PROGRESS */
+  .progress-bar {
+    display: flex; gap: 0;
+    margin: 20px 0; border-radius: 8px; overflow: hidden;
+  }
+  .progress-seg {
+    padding: 10px 14px; font-size: 0.78rem;
+    font-weight: 600; text-align: center;
+    color: white; flex: 1;
+  }
+  .p1 { background: #00b383; }
+  .p2 { background: #007a5a; }
+  .p3 { background: #1a3a5c; }
+  .p4 { background: #7b2d8b; }
+  .p5 { background: #e07b00; }
+
+  /* BR CODE VISUAL */
+  .brcode-visual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .brcode-field {
+    background: var(--cinza);
+    border-radius: 8px;
+    padding: 12px 16px;
+    border-left: 4px solid var(--verde-pix);
+  }
+  .brcode-field.obrig-field { border-left-color: var(--vermelho); }
+  .brcode-field.opt-field { border-left-color: #aaa; }
+  .brcode-id { font-size: 0.75rem; font-weight: 700; color: #888; letter-spacing: 1px; }
+  .brcode-name { font-size: 0.9rem; font-weight: 600; color: var(--azul); margin: 2px 0; }
+  .brcode-desc { font-size: 0.78rem; color: var(--cinza-texto); }
+
+  /* CHAVE TIPOS */
+  .chave-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin: 16px 0;
+  }
+  .chave-card {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .chave-icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .chave-type { font-weight: 700; font-size: 0.9rem; color: var(--azul); }
+  .chave-format { font-size: 0.78rem; color: var(--cinza-texto); margin-top: 4px; font-family: monospace; background: var(--cinza); padding: 4px 8px; border-radius: 4px; }
+
+  /* STATUS */
+  .status-grid {
+    display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0;
+  }
+  .status-badge {
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 0.8rem; font-weight: 700;
+  }
+  .s-ativa { background: #d4edda; color: #155724; }
+  .s-concluida { background: #cce5ff; color: #004085; }
+  .s-removida { background: #f8d7da; color: #721c24; }
+  .s-expirada { background: #fff3cd; color: #856404; }
+
+  /* SECURITY */
+  .security-item {
+    display: flex; gap: 12px; padding: 14px 0;
+    border-bottom: 1px solid var(--borda);
+    align-items: flex-start;
+  }
+  .security-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .security-text strong { display: block; font-size: 0.9rem; color: var(--azul); margin-bottom: 3px; }
+  .security-text p { margin: 0; font-size: 0.85rem; color: var(--cinza-texto); }
+
+  /* FOOTER */
+  .footer {
+    background: var(--azul);
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 30px;
+    font-size: 0.8rem;
+    margin-top: 60px;
+  }
+  .footer strong { color: white; }
+
+  /* TOC */
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 40px;
+  }
+  .toc h3 { border-left: none; padding-left: 0; margin-top: 0; color: var(--azul); }
+  .toc-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px; margin-top: 16px;
+  }
+  .toc-item {
+    display: flex; gap: 10px; align-items: center;
+    padding: 8px 12px; border-radius: 8px;
+    background: var(--cinza);
+    text-decoration: none; color: var(--azul);
+    font-size: 0.85rem; font-weight: 500;
+    transition: background 0.2s;
+  }
+  .toc-item:hover { background: var(--verde-claro); }
+  /* EXEMPLO REAL NOS CARDS */
+  .card-exemplo {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.035);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #444;
+    line-height: 1.5;
+    border-left: 3px solid var(--borda);
+  }
+  .card-tipo.dinamico .card-exemplo { border-left-color: var(--azul); }
+  .card-tipo.composto .card-exemplo { border-left-color: var(--roxo); }
+  .card-tipo:not(.dinamico):not(.composto) .card-exemplo { border-left-color: var(--verde-pix); }
+  .card-exemplo-code {
+    margin-top: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.67rem;
+    background: rgba(0,0,0,0.06);
+    border-radius: 5px;
+    padding: 7px 9px;
+    word-break: break-all;
+    color: #333;
+    line-height: 1.6;
+    user-select: all;
+    cursor: text;
+  }
+  .card-exemplo-code-label {
+    font-size: 0.65rem;
+    color: var(--cinza-texto);
+    display: block;
+    margin-bottom: 3px;
+    font-style: italic;
+  }
+    .card-exemplo-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
+    font-weight: 700; color: var(--cinza-texto); display: block; margin-bottom: 4px;
+  }
+
+  /* CARDINALIDADE CARDS */
+  .card-rel-grid { display: flex; flex-direction: column; gap: 12px; margin: 0 0 8px; }
+  .card-rel {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 4px 12px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 14px 18px 10px;
+    position: relative;
+  }
+  .card-rel--one { border-color: var(--verde-pix); background: #f0faf4; }
+  .card-rel-side { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .card-rel-side:last-of-type { align-items: flex-start; }
+  .card-rel-emoji { font-size: 1.6rem; line-height: 1; }
+  .card-rel-label { font-size: 0.78rem; font-weight: 600; color: #333; text-align: center; }
+  .card-rel-label small { font-weight: 400; color: var(--cinza-texto); font-size: 0.72rem; }
+  .card-rel-center { display: flex; align-items: center; gap: 4px; justify-content: center; }
+  .card-rel-num { font-size: 1.3rem; font-weight: 800; color: var(--azul); min-width: 18px; text-align: center; }
+  .card-rel-arrow { font-size: 1.1rem; color: var(--cinza-texto); }
+  .card-rel-badge {
+    background: var(--azul); color: #fff;
+    font-size: 0.78rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .card-rel-badge--one { background: var(--verde-pix); }
+  .card-rel-note {
+    grid-column: 1 / -1;
+    font-size: 0.78rem; color: var(--cinza-texto);
+    border-top: 1px solid var(--borda); padding-top: 8px; margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* GLOSSÁRIO DE SIGLAS */
+  .gloss-btn {
+    position: fixed; bottom: 72px; right: 24px; z-index: 300;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--azul); color: #fff;
+    border: none; cursor: pointer;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.4px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+    user-select: none;
+  }
+  .gloss-btn:hover { background: var(--verde-escuro); transform: scale(1.07); }
+  .gloss-panel {
+    position: fixed; bottom: 122px; right: 24px; z-index: 299;
+    width: 360px; max-height: 460px; overflow-y: auto;
+    background: #fff; border: 1px solid var(--borda);
+    border-radius: 14px; padding: 16px 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    opacity: 0; pointer-events: none;
+    transform: translateY(8px) scale(0.97);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    scrollbar-width: thin;
+  }
+  .gloss-panel.visible { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+  .gloss-panel-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--azul); margin-bottom: 12px; }
+  .gloss-list { columns: 2; column-gap: 16px; }
+  .gloss-item { break-inside: avoid; margin-bottom: 8px; }
+  .gloss-term { font-weight: 700; color: var(--azul); font-size: 0.82rem; }
+  .gloss-def { font-size: 0.78rem; color: #444; line-height: 1.35; }
+  @media (max-width: 960px) {
+    .gloss-panel { width: calc(100vw - 48px); right: 24px; }
+    .gloss-list { columns: 1; }
+    .gloss-btn { bottom: 80px; }
+  }
+
+  /* SECTION REFS */
+  .section-refs {
+    margin-top: 36px;
+    padding: 16px 20px;
+    background: #f0f4f8;
+    border-radius: 10px;
+    border-left: 4px solid var(--verde-pix);
+  }
+  .section-refs-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--cinza-texto);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .section-refs ul {
+    list-style: none;
+    padding: 0; margin: 0;
+  }
+  .section-refs li {
+    font-size: 0.8rem;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--borda);
+    color: #444;
+    line-height: 1.5;
+  }
+  .section-refs li:last-child { border-bottom: none; }
+  .ref-doc { font-weight: 600; color: var(--azul); }
+  .ref-ver { font-size: 0.73rem; color: var(--cinza-texto); margin: 0 4px; }
+  .ref-art { font-size: 0.73rem; color: var(--cinza-texto); }
+  .section-refs a { color: var(--verde-escuro); text-decoration: none; }
+  .section-refs a:hover { text-decoration: underline; }
+
+  /* MERMAID */
+  .mermaid-wrap {
+    margin: 24px 0;
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+  .mermaid-wrap > .mermaid-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--cinza-texto);
+    margin-bottom: 12px;
+  }
+  .mermaid svg { max-width: 100%; height: auto; }
+
+  .toc-num {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: var(--verde-pix); color: white;
+    border-radius: 50%; font-size: 0.72rem;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--borda); margin: 40px 0; }
+
+  @media (max-width: 600px) {
+    .hero { padding: 40px 20px; }
+    .hero h1 { font-size: 1.8rem; }
+    .container { padding: 20px; }
+    .compare { grid-template-columns: 1fr; }
+    .brcode-visual { grid-template-columns: 1fr; }
+    .section-title { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">Aula Magna · Material Didático</div>
+    <h1>Pix por QR Code</h1>
+    <p>Do BR Code ao payload JSON — tudo que você precisa saber sobre como o Pix funciona quando um QR Code é lido</p>
+    <div class="hero-meta">
+      <span>30–60 min de estudo</span>
+      <span>Baseado em manuais BCB vigentes (2026)</span>
+      <span>Res. BCB 1/2020 + Manuais UX v7.3 e Padrões v2.9.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="page-wrap">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-badge">◆</div>
+      <div>
+        <div class="sidebar-title">Pix por QR Code</div>
+        <div class="sidebar-sub">Aula Magna</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"><!-- gerado por JS --></nav>
+  </aside>
+
+<div class="container">
+
+<!-- TOC -->
+<div class="toc">
+  <h3>📚 Índice da Aula</h3>
+  <p style="font-size:0.85rem; color: var(--cinza-texto); margin-bottom:0">Clique em qualquer seção para navegar diretamente.</p>
+  <div class="toc-grid">
+    <a class="toc-item" href="#s1"><span class="toc-num">1</span>Por que QR Code no Pix?</a>
+    <a class="toc-item" href="#s2"><span class="toc-num">2</span>O padrão BR Code / EMV</a>
+    <a class="toc-item" href="#s3"><span class="toc-num">3</span>Estático, Dinâmico, Composto</a>
+    <a class="toc-item" href="#s4"><span class="toc-num">4</span>QR Code Estático — detalhe</a>
+    <a class="toc-item" href="#s5"><span class="toc-num">5</span>QR Code Dinâmico (Cob)</a>
+    <a class="toc-item" href="#s6"><span class="toc-num">6</span>Cobrança com Vencimento (CobV)</a>
+    <a class="toc-item" href="#s7"><span class="toc-num">7</span>DICT e chaves Pix</a>
+    <a class="toc-item" href="#s8"><span class="toc-num">8</span>Fluxo completo de pagamento</a>
+    <a class="toc-item" href="#s9"><span class="toc-num">9</span>API Pix — conceitos</a>
+    <a class="toc-item" href="#s10"><span class="toc-num">10</span>Segurança e fraudes</a>
+    <a class="toc-item" href="#s11"><span class="toc-num">11</span>Obrigações de UX</a>
+    <a class="toc-item" href="#s12"><span class="toc-num">12</span>Resumo executivo</a>
+  </div>
+</div>
+
+<!-- ===== SEÇÃO 1 ===== -->
+<section class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2 class="section-title">Por que QR Code no Pix?</h2>
+  </div>
+
+  <p>O Pix tem várias formas de iniciar um pagamento: por chave Pix, por dados bancários, por aproximação NFC. O <strong>QR Code</strong> é, na prática, a forma mais utilizada em contextos de cobrança comercial — e a mais rica tecnicamente.</p>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>A ideia central</strong>
+      Um QR Code Pix é um <em>envelope padronizado</em> que carrega — ou aponta para — todas as informações de uma transação. O pagador nunca precisa digitar nada: basta apontar a câmera.
+    </div>
+  </div>
+
+  <h3>As três iniciações por QR Code que a regulação define</h3>
+  <div class="progress-bar">
+    <div class="progress-seg p1">📱 Câmera lê QR</div>
+    <div class="progress-seg p2">🔍 App processa payload</div>
+    <div class="progress-seg p3">🏛️ Consulta DICT</div>
+    <div class="progress-seg p4">✅ Pagador confirma</div>
+    <div class="progress-seg p5">⚡ SPI liquida</div>
+  </div>
+
+  <p>O <strong>Art. 6, II da Res. BCB 1/2020</strong> torna obrigatório que todo PSP (banco, fintech, etc.) disponibilize ao pagador a opção de iniciar um Pix via leitura de QR Code. Não é opcional — é mandatório do regulador.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <strong style="color: var(--azul)">🎯 Para o recebedor</strong>
+      <p style="margin-top:8px; font-size:0.9rem">Gerar um QR Code é o jeito mais simples de cobrar: basta compartilhar uma imagem. Sem precisar falar ISPB, agência, conta, dígito verificador.</p>
+    </div>
+    <div class="card">
+      <strong style="color: var(--azul)">🎯 Para o pagador</strong>
+      <p style="margin-top:8px; font-size:0.9rem">Apontar câmera = todos os dados preenchidos automaticamente. O app ainda mostra o nome do recebedor para confirmar antes de pagar.</p>
+    </div>
+    <div class="card">
+      <strong style="color: var(--azul)">🎯 Para o PSP</strong>
+      <p style="margin-top:8px; font-size:0.9rem">QR Code Dinâmico permite automação total da cobrança via API Pix: emissão, consulta de status, devolução, conciliação — tudo programático.</p>
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Arts. 38-A a 38-D — QR Codes Pix</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">bcb.gov.br/estabilidadefinanceira/pix-normas</a></li>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Cap. 1 — Contexto e finalidade</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 2 ===== -->
+<section class="section" id="s2">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2 class="section-title">O padrão BR Code (base técnica)</h2>
+  </div>
+
+  <p>O QR Code Pix não é um QR Code qualquer. Ele segue o <strong>BR Code</strong>, padrão brasileiro baseado na especificação internacional <strong>EMV-QRCPS</strong> (Europay, Mastercard, Visa — QR Code Payment Specification).</p>
+
+  <div class="callout info">
+    <div class="callout-icon">📐</div>
+    <div class="callout-body">
+      <strong>Dois modos EMV — só um é o Pix</strong>
+      O EMV define MPM (<em>Merchant Presented Mode</em>, QR exibido pelo recebedor) e CPM (<em>Consumer Presented Mode</em>, QR exibido pelo pagador). <strong>O Pix usa exclusivamente o MPM</strong> — o estabelecimento/recebedor exibe o código, o pagador escaneia.
+    </div>
+  </div>
+
+  <h3>O identificador global do Pix (GUI)</h3>
+  <p>Todo QR Code Pix tem um campo que o identifica como sendo do arranjo Pix, e não de outro sistema de pagamento:</p>
+
+  <div class="code-block">
+<span class="comment">// Campo ID 00 dentro do bloco de Merchant Account Information (IDs 26 a 51)</span>
+<span class="key">GUI</span> = <span class="str">"br.gov.bcb.pix"</span>   <span class="comment">// 14 chars, case-insensitive</span>
+  </div>
+
+  <p>Esse <strong>GUI (Globally Unique Identifier)</strong> é a assinatura digital do Pix dentro do BR Code. Qualquer app que implemente o padrão sabe que, ao encontrar esse identificador, está diante de um pagamento Pix.</p>
+
+  <h3>Estrutura de campos do BR Code</h3>
+
+  <div class="callout info">
+    <div class="callout-icon">📐</div>
+    <div class="callout-body">
+      <strong>Formato TLV — Tag · Length · Value</strong>
+      Cada campo é codificado como: <code>ID (2 chars) + Comprimento (2 chars, zero-padded) + Valor</code>. O comprimento indica o tamanho exato do valor — sem padding, sem espaços. Se um campo opcional estiver vazio, <strong>omite-se o campo inteiro</strong>.
+      <br>Exemplo: nome "João" → <code>5904João</code> (ID=59, comprimento=04, valor=João).
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Campo EMV</th>
+          <th>Obrig.</th>
+          <th>Tipo</th>
+          <th>Tamanho</th>
+          <th>Observação / Valores aceitos</th>
+          <th>Exemplo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>00</strong></td>
+          <td>Payload Format Indicator</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>String fixo</td>
+          <td>2 (fixo)</td>
+          <td>Sempre <code>"01"</code> — versão do padrão EMV</td>
+          <td><code>000201</code></td>
+        </tr>
+        <tr>
+          <td><strong>01</strong></td>
+          <td>Point of Initiation Method</td>
+          <td><span class="opcion">Cond.</span></td>
+          <td>Numérico</td>
+          <td>2 (fixo)</td>
+          <td><code>11</code> = uso único (QR dinâmico de cobrança); <code>12</code> = reutilizável (QR estático). Se ausente, tratado como reutilizável.</td>
+          <td><code>010211</code></td>
+        </tr>
+        <tr>
+          <td><strong>26–51</strong></td>
+          <td>Merchant Account Information</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Estrutura aninhada</td>
+          <td>23–99 (total do bloco)</td>
+          <td>Contém subcampos: <code>00</code>=GUI (<code>br.gov.bcb.pix</code>), <code>01</code>=chave Pix (estático) ou <code>25</code>=URL (dinâmico). O bloco inteiro não pode ultrapassar 99 chars.</td>
+          <td><code>2658 0014br.gov.bcb.pix 0136{uuid}</code></td>
+        </tr>
+        <tr>
+          <td><strong>52</strong></td>
+          <td>Merchant Category Code (MCC)</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Numérico</td>
+          <td>4 (fixo)</td>
+          <td>Sempre <code>0000</code> para o Pix (categoria não especificada)</td>
+          <td><code>52040000</code></td>
+        </tr>
+        <tr>
+          <td><strong>53</strong></td>
+          <td>Transaction Currency</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Numérico (ISO 4217)</td>
+          <td>3 (fixo)</td>
+          <td>Sempre <code>986</code> — código ISO da moeda Real (BRL)</td>
+          <td><code>5303986</code></td>
+        </tr>
+        <tr>
+          <td><strong>54</strong></td>
+          <td>Transaction Amount</td>
+          <td><span class="opcion">Não</span></td>
+          <td>Decimal string</td>
+          <td>1–13 (variável)</td>
+          <td>Valor em reais com ponto decimal. Ex: <code>150.00</code>. Se ausente, o pagador digita o valor. Nunca inclua separador de milhar.</td>
+          <td><code>5406150.00</code></td>
+        </tr>
+        <tr>
+          <td><strong>58</strong></td>
+          <td>Country Code</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>String (ISO 3166-1)</td>
+          <td>2 (fixo)</td>
+          <td>Sempre <code>BR</code></td>
+          <td><code>5802BR</code></td>
+        </tr>
+        <tr>
+          <td><strong>59</strong></td>
+          <td>Merchant Name</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Texto livre</td>
+          <td>1–25 (variável)</td>
+          <td>Nome do recebedor exibido ao pagador. Apenas o tamanho real do nome — sem padding. Caracteres: A-Z, 0-9, espaço, alguns especiais.</td>
+          <td><code>5913Fulano Silva</code></td>
+        </tr>
+        <tr>
+          <td><strong>60</strong></td>
+          <td>Merchant City</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Texto livre</td>
+          <td>1–15 (variável)</td>
+          <td>Cidade do recebedor. Tamanho real, sem completar com espaços.</td>
+          <td><code>6009SAO PAULO</code></td>
+        </tr>
+        <tr>
+          <td><strong>62</strong></td>
+          <td>Additional Data Field</td>
+          <td><span class="opcion">Não</span></td>
+          <td>Estrutura aninhada</td>
+          <td>variável</td>
+          <td>Contém subcampo <code>05</code> (Reference Label = txid). Se não houver txid, colocar <code>***</code> (obrigatório pelo padrão). O bloco 62 pode ser omitido apenas se não houver txid algum.</td>
+          <td><code>62070503***</code> ou <code>6229050125ABC123...</code></td>
+        </tr>
+        <tr>
+          <td><strong>62-05</strong></td>
+          <td>↳ Reference Label (txid)</td>
+          <td><span class="opcion">Cond.</span></td>
+          <td>Alfanumérico</td>
+          <td>1–25 (variável)</td>
+          <td>Tamanho real do txid informado. Caracteres: <code>a-z A-Z 0-9</code>. Se sem txid, use <code>***</code> (3 chars). Retransmitido intacto na ordem de pagamento.</td>
+          <td><code>050512ABC99</code></td>
+        </tr>
+        <tr>
+          <td><strong>63</strong></td>
+          <td>CRC16</td>
+          <td><span class="obrig">Sim</span></td>
+          <td>Hexadecimal</td>
+          <td>4 (fixo)</td>
+          <td>Sempre o <strong>último campo</strong>. Algoritmo: CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF). Calculado sobre todo o payload incluindo <code>6304</code>. Resultado em maiúsculo, zero-padded.</td>
+          <td><code>63041D3D</code></td>
+        </tr>
+        <tr>
+          <td><strong>80–99</strong></td>
+          <td>Unreserved Templates</td>
+          <td><span class="opcion">Cond.</span></td>
+          <td>Estrutura aninhada</td>
+          <td>23–99 (por bloco)</td>
+          <td>Usado apenas no QR Code Composto (Pix Automático). Contém subcampos <code>00</code>=GUI e <code>25</code>=URL de recorrência. Obrigatório no Composto; proibido nos demais tipos.</td>
+          <td>(apenas no QR Composto)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>O campo 63 (CRC) é a prova de integridade</strong>
+      Todo QR Code Pix termina com um CRC16 de 4 caracteres. Se qualquer bit do payload for alterado, o CRC não bate e o pagamento é rejeitado. Isso protege contra adulterações em QR Codes impressos.
+    </div>
+  </div>
+
+  <h3>Exemplo de payload real (QR Estático)</h3>
+
+  <p>Primeiro, a string real — exatamente como ela existe: um bloco contínuo sem separadores.</p>
+
+  <div class="code-block"><span class="comment">// String completa (é assim que o QR Code armazena — sem espaços, sem quebras):</span>
+<span class="val">000201</span><span class="val">010212</span><span class="val">2658</span><span class="key">0014</span><span class="str">br.gov.bcb.pix</span><span class="key">0136</span><span class="str">123e4567-e12b-12d1-a456-426655440000</span><span class="val">52040000</span><span class="val">5303986</span><span class="val">5802BR</span><span class="val">5913</span><span class="label">Loja Exemplo S</span><span class="val">6009</span><span class="label">SAO PAULO</span><span class="val">62070503</span><span class="comment">***</span><span class="val">6304</span><span class="str">1D3D</span></div>
+
+  <p style="margin-top:16px">Agora, campo a campo — cada linha é um campo isolado:</p>
+
+  <div class="code-block"><span class="comment">// ─── campo 00 ──────────────────────────────────────────────────────────────</span>
+<span class="val">00</span> <span class="key">02</span> <span class="str">01</span>
+<span class="comment">//  ↑  ↑   ↑
+//  ID len  valor
+//  Payload Format Indicator — valor "01" é o único válido pelo EMV</span>
+
+<span class="comment">// ─── campo 01 ──────────────────────────────────────────────────────────────</span>
+<span class="val">01</span> <span class="key">02</span> <span class="str">12</span>
+<span class="comment">//  Point of Initiation Method
+//  "11" = uso único (QR dinâmico)  |  "12" = reutilizável (QR estático)</span>
+
+<span class="comment">// ─── campo 26 (bloco Merchant Account Info) ────────────────────────────────</span>
+<span class="val">26</span> <span class="key">58</span> <span class="comment">← abre o bloco (os próximos 58 chars são os subcampos abaixo)</span>
+  <span class="val">00</span> <span class="key">14</span> <span class="str">br.gov.bcb.pix</span>                           <span class="comment">// GUI — identifica o arranjo Pix</span>
+  <span class="val">01</span> <span class="key">36</span> <span class="str">123e4567-e12b-12d1-a456-426655440000</span>     <span class="comment">// Chave Pix (UUID, 36 chars com hifens)</span>
+<span class="comment">// ──── fim do bloco 26 ──────────────────────────────────────────────────────</span>
+
+<span class="comment">// ─── campo 52 ──────────────────────────────────────────────────────────────</span>
+<span class="val">52</span> <span class="key">04</span> <span class="str">0000</span>
+<span class="comment">//  Merchant Category Code (MCC) — "0000" para Pix (sem categoria específica)</span>
+
+<span class="comment">// ─── campo 53 ──────────────────────────────────────────────────────────────</span>
+<span class="val">53</span> <span class="key">03</span> <span class="str">986</span>
+<span class="comment">//  Transaction Currency — "986" = BRL (ISO 4217)</span>
+
+<span class="comment">// ─── campo 54 ──────────────────────────────────────────────────────────────</span>
+<span class="comment">//  (ausente) → valor livre; o pagador digita o valor no app</span>
+
+<span class="comment">// ─── campo 58 ──────────────────────────────────────────────────────────────</span>
+<span class="val">58</span> <span class="key">02</span> <span class="str">BR</span>
+<span class="comment">//  Country Code — "BR" (ISO 3166-1 alpha-2)</span>
+
+<span class="comment">// ─── campo 59 ──────────────────────────────────────────────────────────────</span>
+<span class="val">59</span> <span class="key">13</span> <span class="label">Loja Exemplo S</span>
+<span class="comment">//  Merchant Name — 13 chars exatos, sem padding, sem espaço extra</span>
+
+<span class="comment">// ─── campo 60 ──────────────────────────────────────────────────────────────</span>
+<span class="val">60</span> <span class="key">09</span> <span class="label">SAO PAULO</span>
+<span class="comment">//  Merchant City — 9 chars (sem acento — padrão EMV é ASCII)</span>
+
+<span class="comment">// ─── campo 62 (Additional Data Field Template) ─────────────────────────────</span>
+<span class="val">62</span> <span class="key">07</span> <span class="comment">← abre o bloco (7 chars de subcampos)</span>
+  <span class="val">05</span> <span class="key">03</span> <span class="comment">***</span>                                        <span class="comment">// Reference Label (txid) = "***" quando não há txid</span>
+<span class="comment">// ──── fim do bloco 62 ──────────────────────────────────────────────────────</span>
+
+<span class="comment">// ─── campo 63 ──────────────────────────────────────────────────────────────</span>
+<span class="val">63</span> <span class="key">04</span> <span class="str">1D3D</span>
+<span class="comment">//  CRC-16/CCITT-FALSE calculado sobre TUDO acima + o próprio prefixo "6304"
+//  Resultado em hexadecimal maiúsculo, sempre 4 chars</span></div>
+
+  <div class="callout info">
+    <div class="callout-icon">🔢</div>
+    <div class="callout-body">
+      <strong>Como ler qualquer campo: ID (2) + Comprimento (2) + Valor</strong>
+      <code>5913</code> → ID=59, len=13, valor = os próximos 13 chars. O comprimento é sempre o tamanho exato do valor — sem zeros de padding, sem espaços. Campo opcional vazio = campo inteiro ausente.
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Cap. 3 — Estrutura do BR Code (TLV, campos, CRC)</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">EMV QR Code Payment Specification (EMV-QRCPS)</span><span class="ref-ver">v1.1</span><span class="ref-art">Especificação base que o BR Code adapta</span> — <a href="https://www.emvco.com/emv-technologies/qrcodes/" target="_blank">emvco.com</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 3 ===== -->
+<section class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2 class="section-title">Os três tipos de QR Code Pix</h2>
+  </div>
+
+  <p>O Manual de Padrões para Iniciação do Pix (v2.9.0) define três tipos. A diferença fundamental está em <em>onde vivem os dados da cobrança</em>:</p>
+
+  <div class="card-grid">
+    <div class="card-tipo">
+      <span class="tipo-badge badge-estatico">Estático</span>
+      <h3>QR Code Estático</h3>
+      <p style="font-size:0.88rem">Todos os dados estão <strong>dentro do próprio QR</strong>. Não precisa de servidor. Pode ser reutilizado infinitas vezes.</p>
+      <ul style="font-size:0.82rem; margin-top:8px; padding-left:16px; color:var(--cinza-texto)">
+        <li>✓ Geração offline</li>
+        <li>✓ Múltiplos pagamentos</li>
+        <li>✗ Sem valor automático por transação</li>
+        <li>✗ Sem status de pagamento</li>
+      </ul>
+      <div class="card-exemplo">
+        <span class="card-exemplo-label">📌 Exemplo real</span>
+        Uma padaria imprime um QR fixo no balcão. O cliente escaneia, digita R$ 7,50 pelo café e confirma. O mesmo QR funciona para o próximo cliente — sem expirar, sem backend.
+        <div class="card-exemplo-code">
+          <span class="card-exemplo-code-label">payload BR Code (129 chars, CRC real):</span>00020126470014br.gov.bcb.pix0125pagamentos@padaria.com.br5204000053039865802BR5915Padaria Ponto X6009SAO PAULO62070503***63044A17
+        </div>
+      </div>
+    </div>
+    <div class="card-tipo dinamico">
+      <span class="tipo-badge badge-dinamico">Dinâmico</span>
+      <h3>QR Code Dinâmico</h3>
+      <p style="font-size:0.88rem">O QR contém apenas uma <strong>URL</strong>. Os dados da cobrança são buscados nessa URL no momento da leitura.</p>
+      <ul style="font-size:0.82rem; margin-top:8px; padding-left:16px; color:var(--cinza-texto)">
+        <li>✓ Valor e txid únicos</li>
+        <li>✓ Status em tempo real</li>
+        <li>✓ Pode expirar</li>
+        <li>✓ Cobrança com vencimento</li>
+      </ul>
+      <div class="card-exemplo">
+        <span class="card-exemplo-label">📌 Exemplo real</span>
+        Um e-commerce gera um QR por pedido com valor fixo (R$ 349,90), txid único e validade de 30 min. Quando pago, o webhook notifica o sistema e o pedido é liberado automaticamente — sem intervenção humana.
+        <div class="card-exemplo-code">
+          <span class="card-exemplo-code-label">payload BR Code (156 chars, CRC real):</span>00020126550014br.gov.bcb.pix2533pix.loja.com.br/cobr/Ht7Kx9mNpQrT5204000053039865406349.905802BR5912Loja Exemplo6008CAMPINAS62200516Ht7Kx9mNpQrTwXzA630496CF
+        </div>
+      </div>
+    </div>
+    <div class="card-tipo composto">
+      <span class="tipo-badge badge-composto">Composto</span>
+      <h3>QR Code Composto</h3>
+      <p style="font-size:0.88rem">Extensão do dinâmico que adiciona uma <strong>segunda URL</strong> com parâmetros de recorrência — para o Pix Automático.</p>
+      <ul style="font-size:0.82rem; margin-top:8px; padding-left:16px; color:var(--cinza-texto)">
+        <li>✓ Adesão + pagamento num QR só</li>
+        <li>✓ Base do Pix Automático</li>
+        <li>✗ Não suporta Saque/Troco</li>
+      </ul>
+      <div class="card-exemplo">
+        <span class="card-exemplo-label">📌 Exemplo real</span>
+        Uma academia oferece Pix Automático para mensalidades. O aluno escaneia o QR Composto uma única vez para aderir. Nos meses seguintes, o débito de R$ 120 acontece automaticamente no vencimento — sem novo escaneamento.
+        <div class="card-exemplo-code">
+          <span class="card-exemplo-code-label">payload BR Code (218 chars, CRC real — note os dois campos 26):</span>000201261130014br.gov.bcb.pix2533pix.academia.com.br/cobr/Rt5Mn8kL26540014br.gov.bcb.pix2532pix.academia.com.br/rec/Rt5Mn8kL5204000053039865406120.005802BR5915Academia FitPro6008CAMPINAS62200516Rt5Mn8kLpJhFcVbZ63046A11
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Quando usar cada um?</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Cenário</th><th>Tipo recomendado</th><th>Motivo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cartão de visita, loja física com valor aberto</td>
+          <td><span class="tipo-badge badge-estatico">Estático</span></td>
+          <td>Reutilizável, simples, sem backend</td>
+        </tr>
+        <tr>
+          <td>E-commerce, maquininha, ERP</td>
+          <td><span class="tipo-badge badge-dinamico">Dinâmico (Cob)</span></td>
+          <td>Valor único, conciliação automática via txid</td>
+        </tr>
+        <tr>
+          <td>Boleto digital, mensalidades, aluguel</td>
+          <td><span class="tipo-badge badge-dinamico">Dinâmico (CobV)</span></td>
+          <td>Vencimento, juros, multa, desconto configuráveis</td>
+        </tr>
+        <tr>
+          <td>Assinatura, plano mensal, débito automático</td>
+          <td><span class="tipo-badge badge-composto">Composto</span></td>
+          <td>Captura adesão ao Pix Automático no primeiro pagamento</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">🔁</div>
+    <div class="callout-body">
+      <strong>Pix Copia e Cola é a versão texto do QR Code</strong>
+      Tecnicamente, é o mesmo payload do QR Code — só que em formato texto para copiar e colar. O fluxo no app é idêntico. Suportado nos três tipos de QR.
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Cap. 4 — Modalidades de QR Code (Estático, Dinâmico, Composto)</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Arts. 38-B, 38-C e 38-D — definições legais dos tipos de QR</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 4 ===== -->
+<section class="section" id="s4">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2 class="section-title">QR Code Estático — aprofundamento</h2>
+  </div>
+
+  <h3>Campos disponíveis</h3>
+  <div class="brcode-visual">
+    <div class="brcode-field obrig-field">
+      <div class="brcode-id">ID 26-51 &gt; 00</div>
+      <div class="brcode-name">GUI — <code>br.gov.bcb.pix</code></div>
+      <div class="brcode-desc">Identificador do arranjo Pix. Obrigatório e fixo.</div>
+    </div>
+    <div class="brcode-field obrig-field">
+      <div class="brcode-id">ID 26-51 &gt; 01</div>
+      <div class="brcode-name">Chave Pix</div>
+      <div class="brcode-desc">Chave válida no DICT. <strong>Obrigatório</strong>. Máx 77 chars.</div>
+    </div>
+    <div class="brcode-field opt-field">
+      <div class="brcode-id">ID 26-51 &gt; 02</div>
+      <div class="brcode-name">infoAdicional</div>
+      <div class="brcode-desc">Texto livre (ex: "Mesa 12"). Opcional. Máx 72 chars.</div>
+    </div>
+    <div class="brcode-field opt-field">
+      <div class="brcode-id">ID 26-51 &gt; 03</div>
+      <div class="brcode-name">fss</div>
+      <div class="brcode-desc">ISPB do facilitador de saque (Pix Saque). Opcional. 8 chars fixos.</div>
+    </div>
+    <div class="brcode-field opt-field">
+      <div class="brcode-id">ID 62-05</div>
+      <div class="brcode-name">txid (Reference Label)</div>
+      <div class="brcode-desc">Identificador da transação para conciliação. Opcional no estático. Máx 25 chars.</div>
+    </div>
+    <div class="brcode-field opt-field">
+      <div class="brcode-id">ID 54</div>
+      <div class="brcode-name">Valor</div>
+      <div class="brcode-desc">Valor pré-definido pelo recebedor. Opcional — se ausente, pagador define.</div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">📏</div>
+    <div class="callout-body">
+      <strong>Limite de 99 chars — a competição de espaço</strong>
+      O bloco de dados Pix (IDs 26-51) tem no máximo 99 caracteres. <code>chave</code> + <code>infoAdicional</code> + <code>fss</code> dividem esse espaço:
+      <ul style="margin-top:8px; font-size:0.85rem">
+        <li>Campo <code>fss</code> consome 12 chars fixos quando presente</li>
+        <li>Chave máxima sem outros campos: 77 chars</li>
+        <li>Quanto maior a chave (ex: e-mail longo), menos espaço para <code>infoAdicional</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Regras do txid no QR Estático</h3>
+  <p>No QR Estático, o txid vai no campo EMV 62-05 (Reference Label):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Regra</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td>Tamanho máximo</td><td><strong>25 caracteres</strong> (diferente do dinâmico!)</td></tr>
+        <tr><td>Caracteres permitidos</td><td><code>a-z</code>, <code>A-Z</code>, <code>0-9</code></td></tr>
+        <tr><td>Sem txid definido</td><td>Use o valor <code>***</code> (obrigatório pelo padrão)</td></tr>
+        <tr><td>Transmissão</td><td>PSP pagador deve retransmitir intacto na ordem de pagamento</td></tr>
+        <tr><td>Origem</td><td>Criação <strong>não faz parte da API Pix</strong> (gerado pelo recebedor)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Comparativo rápido</h3>
+  <div class="compare">
+    <div class="compare-col estatico">
+      <h4>✅ QR Estático faz bem</h4>
+      <ul>
+        <li>Cobranças presenciais sem sistema</li>
+        <li>QR impresso em cardápio, balcão, pix.me</li>
+        <li>Múltiplos clientes, mesmo QR</li>
+        <li>Doações sem valor fixo</li>
+      </ul>
+    </div>
+    <div class="compare-col dinamico">
+      <h4>❌ QR Estático não faz</h4>
+      <ul>
+        <li>Conciliação confiável por pedido</li>
+        <li>Controle de expiração por transação</li>
+        <li>Bloquear segundo pagamento do mesmo QR</li>
+        <li>Cobrança com vencimento ou juros</li>
+      </ul>
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Seção 4.1 — QR Code Estático: campos obrigatórios, opcionais e txid</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Art. 38-B — modalidade estática</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 5 ===== -->
+<section class="section" id="s5">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2 class="section-title">QR Code Dinâmico — Cobrança Imediata (Cob)</h2>
+  </div>
+
+  <p>O QR Code Dinâmico carrega uma <strong>URL</strong> no lugar dos dados da cobrança. Quando o app do pagador escaneia, ele faz uma requisição HTTPS para essa URL e obtém o payload JSON atualizado.</p>
+
+  <div class="callout info">
+    <div class="callout-icon">🔗</div>
+    <div class="callout-body">
+      <strong>A URL não tem "https://" no QR</strong>
+      Por spec, a URL é armazenada no BR Code <em>sem o prefixo do protocolo</em>. O app pagador adiciona automaticamente o <code>https://</code>. Isso economiza caracteres no QR Code.
+      <br>Formato: <code>pagamentos.banco.com.br/cobr/abc123xyz</code>
+    </div>
+  </div>
+
+  <h3>O Payload JSON — estrutura completa da Cob</h3>
+
+  <div class="code-block">
+{
+  <span class="key">"revisao"</span>: <span class="val">0</span>,          <span class="comment">// incrementado a cada alteração via API</span>
+
+  <span class="key">"calendario"</span>: {
+    <span class="key">"criacao"</span>:      <span class="str">"2025-11-17T14:00:00Z"</span>,  <span class="comment">// RFC 3339</span>
+    <span class="key">"apresentacao"</span>: <span class="str">"2025-11-17T14:35:12Z"</span>,  <span class="comment">// momento da leitura</span>
+    <span class="key">"expiracao"</span>:    <span class="val">3600</span>                       <span class="comment">// segundos. Default=86400 (24h)</span>
+  },
+
+  <span class="key">"devedor"</span>: {
+    <span class="key">"cpf"</span>:  <span class="str">"12345678900"</span>,          <span class="comment">// ou cnpj, não ambos</span>
+    <span class="key">"nome"</span>: <span class="str">"Maria Oliveira"</span>
+  },
+
+  <span class="key">"valor"</span>: {
+    <span class="key">"original"</span>:            <span class="str">"150.00"</span>,
+    <span class="key">"modalidadeAlteracao"</span>: <span class="val">0</span>    <span class="comment">// 0=fixo, 1=pagador pode alterar</span>
+  },
+
+  <span class="key">"chave"</span>: <span class="str">"empresa@pagamentos.com.br"</span>,
+
+  <span class="key">"txid"</span>: <span class="str">"ABC123DEF456GHI789JKL012MNO34"</span>, <span class="comment">// 26-35 chars, único por CNPJ</span>
+
+  <span class="key">"solicitacaoPagador"</span>: <span class="str">"Ref. Pedido #9087"</span>, <span class="comment">// max 140 chars → vai no RmtInf</span>
+
+  <span class="key">"infoAdicionais"</span>: [
+    { <span class="key">"nome"</span>: <span class="str">"Produto"</span>, <span class="key">"valor"</span>: <span class="str">"Monitor 27\""</span> },
+    { <span class="key">"nome"</span>: <span class="key">"SKU"</span>,     <span class="key">"valor"</span>: <span class="str">"MON-4K-001"</span> }
+  ],
+
+  <span class="key">"status"</span>: <span class="str">"ATIVA"</span>   <span class="comment">// ATIVA | CONCLUIDA | REMOVIDO_PELO_USUARIO_RECEBEDOR | REMOVIDO_PELO_PSP</span>
+}
+  </div>
+
+  <h3>Status possíveis da cobrança</h3>
+  <div class="status-grid">
+    <span class="status-badge s-ativa">ATIVA</span>
+    <span class="status-badge s-concluida">CONCLUIDA</span>
+    <span class="status-badge s-removida">REMOVIDO_PELO_USUARIO_RECEBEDOR</span>
+    <span class="status-badge s-removida">REMOVIDO_PELO_PSP</span>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🔒</div>
+    <div class="callout-body">
+      <strong>CONCLUIDA é status final e irreversível</strong>
+      Uma vez que um Pix for confirmado, o status muda para CONCLUIDA e nenhum outro pagamento pode ser feito nesse QR. O txid é único por CPF/CNPJ — cada transação tem o seu.
+    </div>
+  </div>
+
+  <h3>Unicidade e o txid no Dinâmico</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Propriedade</th><th>Dinâmico (Cob/CobV)</th></tr></thead>
+      <tbody>
+        <tr><td>Tamanho</td><td>Mínimo 26, máximo <strong>35 caracteres</strong></td></tr>
+        <tr><td>Unicidade</td><td>Garantida por CPF/CNPJ do recebedor (pelo PSP recebedor)</td></tr>
+        <tr><td>Geração</td><td>Pelo recebedor, ou delegada ao PSP (só em Cob)</td></tr>
+        <tr><td>Transmissão</td><td>Retransmitido intacto pelo PSP pagador na mensagem ISO 20022</td></tr>
+        <tr><td>Nos campos do QR</td><td><strong>Não vai no BR Code</strong> — está só no payload JSON da URL</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Seção 4.2 — QR Code Dinâmico: URL, payload, txid</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Manual ICP — API Pix</span><span class="ref-ver">v2.6</span><span class="ref-art">Endpoints PUT /cob/{txid}, GET /cob/{txid} e schema Cob</span> — <a href="https://bacen.github.io/pix-api/" target="_blank">bacen.github.io/pix-api</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Art. 38-C — modalidade dinâmica (Cob)</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 6 ===== -->
+<section class="section" id="s6">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2 class="section-title">Cobrança com Vencimento (CobV)</h2>
+  </div>
+
+  <p>A CobV é o "boleto do Pix" — uma cobrança com data de vencimento, podendo conter juros por atraso, multa, desconto para pagamento antecipado e abatimento. O QR Code é <strong>obrigatoriamente dinâmico</strong>.</p>
+
+  <div class="callout info">
+    <div class="callout-icon">📅</div>
+    <div class="callout-body">
+      <strong>Base legal</strong>
+      Art. 11-A, II da Res. BCB 1/2020 (incluído pela Res. BCB 88/2021). A CobV pode ser paga após o vencimento se o recebedor configurar o campo <code>validadeAposVencimento</code>.
+    </div>
+  </div>
+
+  <h3>Campos adicionais da CobV (sobre a Cob)</h3>
+  <div class="code-block">
+<span class="comment">// Campos adicionais no calendario:</span>
+<span class="key">"calendario"</span>: {
+  <span class="comment">// ... mesmos campos da Cob, mais:</span>
+  <span class="key">"dataDeVencimento"</span>:      <span class="str">"2025-12-20"</span>,  <span class="comment">// formato yyyy-mm-dd</span>
+  <span class="key">"validadeAposVencimento"</span>: <span class="val">30</span>            <span class="comment">// dias corridos após vencimento</span>
+},
+
+<span class="comment">// Devedor com campos extras disponíveis na CobV:</span>
+<span class="key">"devedor"</span>: {
+  <span class="key">"cpf"</span>:        <span class="str">"12345678900"</span>,
+  <span class="key">"nome"</span>:       <span class="str">"João Silva"</span>,
+  <span class="key">"logradouro"</span>: <span class="str">"Rua das Flores, 100"</span>,
+  <span class="key">"cidade"</span>:     <span class="str">"Campinas"</span>,
+  <span class="key">"uf"</span>:         <span class="str">"SP"</span>,
+  <span class="key">"cep"</span>:        <span class="str">"13000000"</span>
+},
+
+<span class="comment">// Configurações financeiras:</span>
+<span class="key">"valor"</span>: {
+  <span class="key">"original"</span>: <span class="str">"500.00"</span>,
+
+  <span class="key">"abatimento"</span>: {
+    <span class="key">"modalidade"</span>: <span class="val">1</span>,           <span class="comment">// 1=valor fixo, 2=percentual</span>
+    <span class="key">"valorPerc"</span>:  <span class="str">"10.00"</span>      <span class="comment">// R$10 de abatimento fixo</span>
+  },
+
+  <span class="key">"desconto"</span>: {
+    <span class="key">"modalidade"</span>: <span class="val">1</span>,           <span class="comment">// 1=desconto por data fixa</span>
+    <span class="key">"descontoDataFixa"</span>: [
+      { <span class="key">"data"</span>: <span class="str">"2025-12-15"</span>, <span class="key">"valorPerc"</span>: <span class="str">"20.00"</span> },  <span class="comment">// R$20 até 15/12</span>
+      { <span class="key">"data"</span>: <span class="str">"2025-12-18"</span>, <span class="key">"valorPerc"</span>: <span class="str">"10.00"</span> }   <span class="comment">// R$10 até 18/12</span>
+    ]
+  },
+
+  <span class="key">"juros"</span>: {
+    <span class="key">"modalidade"</span>: <span class="val">2</span>,           <span class="comment">// 2=percentual ao dia</span>
+    <span class="key">"valorPerc"</span>:  <span class="str">"0.033"</span>     <span class="comment">// 0,033% ao dia de atraso</span>
+  },
+
+  <span class="key">"multa"</span>: {
+    <span class="key">"modalidade"</span>: <span class="val">2</span>,           <span class="comment">// 2=percentual sobre valor original</span>
+    <span class="key">"valorPerc"</span>:  <span class="str">"2.00"</span>      <span class="comment">// 2% de multa</span>
+  }
+}
+  </div>
+
+  <h3>A fórmula do valor final (Vf)</h3>
+  <div class="formula">
+    Vf = Vo − <span>Va</span> − <span>Vd</span> + <span>Vj</span> + <span>Vm</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Variável</th><th>Nome</th><th>Quando se aplica</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Vo</strong></td><td>Valor original</td><td>Sempre</td></tr>
+        <tr><td><strong>Va</strong></td><td>Abatimento</td><td>Sempre (se configurado)</td></tr>
+        <tr><td><strong>Vd</strong></td><td>Desconto</td><td>Antes ou na data de vencimento</td></tr>
+        <tr><td><strong>Vj</strong></td><td>Juros por atraso</td><td>Após vencimento</td></tr>
+        <tr><td><strong>Vm</strong></td><td>Multa</td><td>Após vencimento (aplicada uma vez)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Modalidades de juros disponíveis</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Código</th><th>Tipo</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Valor fixo por dia (dias corridos)</td></tr>
+        <tr><td>2</td><td>Percentual ao dia (dias corridos)</td></tr>
+        <tr><td>3</td><td>Percentual ao mês (dias corridos)</td></tr>
+        <tr><td>4</td><td>Percentual ao ano (dias corridos)</td></tr>
+        <tr><td>5</td><td>Valor fixo por dia (dias úteis)</td></tr>
+        <tr><td>6</td><td>Percentual ao dia (dias úteis)</td></tr>
+        <tr><td>7</td><td>Percentual ao mês (dias úteis)</td></tr>
+        <tr><td>8</td><td>Percentual ao ano (dias úteis)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">📆</div>
+    <div class="callout-body">
+      <strong>Regra de feriado</strong>
+      Se a data de vencimento, a data limite de desconto ou a data de validade após vencimento cair em feriado ou fim de semana, ela é automaticamente prorrogada para o próximo dia útil.
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual ICP — API Pix</span><span class="ref-ver">v2.6</span><span class="ref-art">Endpoints PUT /cobv/{txid}, GET /cobv/{txid} e schema CobV (vencimento, juros, multa, desconto)</span> — <a href="https://bacen.github.io/pix-api/" target="_blank">bacen.github.io/pix-api</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Art. 38-D — cobrança com vencimento (incluído pela Res. BCB 88/2021)</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Seção 4.3 — QR Code Dinâmico CobV</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 7 ===== -->
+<section class="section" id="s7">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2 class="section-title">DICT e Chaves Pix — o diretório central</h2>
+  </div>
+
+  <p>O <strong>DICT (Diretório de Identificadores de Contas Transacionais)</strong> é o coração do Pix. É o sistema do Banco Central que mapeia chaves Pix para contas bancárias. Sem ele, o Pix não funciona.</p>
+
+  <div class="callout info">
+    <div class="callout-icon">🏛️</div>
+    <div class="callout-body">
+      <strong>Por que o DICT é fundamental para o QR Code?</strong>
+      Todo QR Code Pix (estático ou dinâmico) tem uma <code>chave</code> no payload. Quando o app do pagador lê o QR, a primeira coisa que faz é consultar o DICT com essa chave para descobrir: qual banco? Qual agência? Qual conta?
+    </div>
+  </div>
+
+  <h3>Os 5 tipos de chave Pix e seus formatos no BR Code</h3>
+  <div class="chave-grid">
+    <div class="chave-card">
+      <div class="chave-icon">📱</div>
+      <div class="chave-type">Celular</div>
+      <div class="chave-format">+5561912345678</div>
+    </div>
+    <div class="chave-card">
+      <div class="chave-icon">📧</div>
+      <div class="chave-type">E-mail</div>
+      <div class="chave-format">user@email.com</div>
+    </div>
+    <div class="chave-card">
+      <div class="chave-icon">🪪</div>
+      <div class="chave-type">CPF</div>
+      <div class="chave-format">12345678900</div>
+    </div>
+    <div class="chave-card">
+      <div class="chave-icon">🏢</div>
+      <div class="chave-type">CNPJ</div>
+      <div class="chave-format">00038166000105</div>
+    </div>
+    <div class="chave-card">
+      <div class="chave-icon">🎲</div>
+      <div class="chave-type">Aleatória</div>
+      <div class="chave-format">UUID (RFC 4122)</div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>Formatação rigorosa no BR Code</strong>
+      <ul style="margin-top:4px; font-size:0.88rem">
+        <li>CPF: <strong>sem pontos ou traço</strong> → <code>12345678900</code></li>
+        <li>CNPJ: <strong>sem pontos, traço ou barra</strong> → <code>00038166000105</code></li>
+        <li>Celular: <strong>com +55, DDD e número</strong> → <code>+5511987654321</code></li>
+        <li>Chave aleatória: <strong>com hifens</strong> → UUID padrão RFC 4122</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>O que o DICT retorna na consulta?</h3>
+  <p>Quando o PSP pagador consulta o DICT com a chave, recebe (internamente):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dado</th><th>Visível ao pagador?</th></tr></thead>
+      <tbody>
+        <tr><td>Nome completo / Razão Social</td><td>✅ Sim (obrigatório)</td></tr>
+        <tr><td>CPF mascarado (<code>***.777.888-**</code>) ou CNPJ</td><td>✅ Sim (obrigatório)</td></tr>
+        <tr><td>Nome do PSP recebedor</td><td>✅ Sim (opcional)</td></tr>
+        <tr><td>ISPB do participante</td><td>❌ Uso interno do PSP</td></tr>
+        <tr><td>Agência e conta</td><td>❌ Uso interno do PSP</td></tr>
+        <tr><td>Data de registro da chave</td><td>❌ Uso interno do PSP</td></tr>
+        <tr><td>Informações de segurança (fraudes)</td><td>❌ Exclusivo do PSP</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Limites de chaves por conta</h3>
+  <div class="card-grid">
+    <div class="card" style="text-align:center">
+      <div style="font-size:2.5rem; font-weight:800; color: var(--verde-pix)">5</div>
+      <div style="font-size:0.9rem; color: var(--cinza-texto)">chaves por conta<br><strong>pessoa física</strong></div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:2.5rem; font-weight:800; color: var(--azul)">20</div>
+      <div style="font-size:0.9rem; color: var(--cinza-texto)">chaves por conta<br><strong>pessoa jurídica</strong></div>
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual Operacional do DICT</span><span class="ref-ver">v8.2</span><span class="ref-art">Cap. 2 — Tipos de chaves, consulta, Token Bucket e MED</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IV_ManualOperacionaldoDICT.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Arts. 14 a 25 — Chaves de endereçamento e DICT</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 8 ===== -->
+<section class="section" id="s8">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2 class="section-title">Fluxo completo de pagamento por QR Code</h2>
+  </div>
+
+  <p>Vamos agora juntar tudo. Quando você aponta a câmera para um QR Code Pix, o que acontece nos bastidores?</p>
+
+  <h3>Fluxo — QR Code Estático</h3>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Pagador abre app e acessa "Pix > Ler QR Code"</strong>
+        <p>Obrigatório por regulação estar na tela principal do Pix.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>App lê o QR Code e decodifica o payload BR Code</strong>
+        <p>Extrai o campo da chave (ID 26-51 > 01) e o valor, se houver (ID 54).</p>
+      </div>
+    </div>
+    <div class="flow-step alt">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>PSP Pagador consulta o DICT com a chave encontrada</strong>
+        <p>Envia <code>EndToEndId</code> da transação futura e CPF/CNPJ do pagador. DICT retorna dados do recebedor.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>App exibe tela de confirmação ao pagador</strong>
+        <p>Nome do recebedor, CPF/CNPJ mascarado, PSP, valor (editável se livre).</p>
+      </div>
+    </div>
+    <div class="flow-step alt">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <strong>Pagador confirma → PSP Pagador envia pacs.008 ao SPI</strong>
+        <p>Mensagem ISO 20022 com todos os dados. Liquidação final no SPI (Sistema de Pagamentos Instantâneos) do Banco Central.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <strong>SPI liquida e PSP Recebedor notifica usuário</strong>
+        <p>Crédito disponível em até 10 segundos. PSP recebedor pode usar webhook da API Pix para ser notificado.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Fluxo — QR Code Dinâmico (Cob/CobV)</h3>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Recebedor cria cobrança via API Pix (POST /cob ou /cobv)</strong>
+        <p>PSP recebedor gera a URL com o payload JSON. Armazena com status ATIVA.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>QR Code é apresentado ao pagador</strong>
+        <p>Contém apenas a URL (sem dados do valor ou txid no próprio QR).</p>
+      </div>
+    </div>
+    <div class="flow-step alt">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>App pagador faz GET HTTPS na URL do QR</strong>
+        <p>PSP recebedor responde com o payload JSON atualizado (campo <code>apresentacao</code> registrado agora).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>App verifica se QR está expirado ou já pago</strong>
+        <p>Se status = CONCLUIDA ou prazo expirou → bloqueia e informa usuário. Sem possibilidade de continuar.</p>
+      </div>
+    </div>
+    <div class="flow-step alt">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <strong>App consulta DICT com a chave do payload</strong>
+        <p>Valida que recebedor existe e obtém dados bancários para roteamento.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <strong>App exibe tela de confirmação (valor NÃO editável)</strong>
+        <p>Para CobV: exibe vencimento, descontos, juros/multa e valor final calculado.</p>
+      </div>
+    </div>
+    <div class="flow-step alt">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <strong>Pagador confirma → pacs.008 → SPI → liquidação</strong>
+        <p>Mesmo mecanismo do estático. PSP recebedor recebe notificação via webhook com o txid.</p>
+      </div>
+    </div>
+    <div class="flow-step warn">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <strong>PSP recebedor atualiza status para CONCLUIDA</strong>
+        <p>Cobrança vinculada ao pagamento via txid. Conciliação automática no ERP do recebedor.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Diagrama de sequência — QR Estático</h3>
+  <div class="mermaid-wrap">
+    <div class="mermaid-title">📊 Sequência completa: escaneamento → liquidação</div>
+    <pre class="mermaid">
+sequenceDiagram
+    actor Pagador as 📱 Pagador
+    participant App as App PSP Pagador
+    participant DICT as DICT (BCB)
+    participant SPI as SPI (BCB)
+    participant PSPRec as PSP Recebedor
+    actor Recebedor as 🏪 Recebedor
+
+    Pagador->>App: Abre Pix → Ler QR Code
+    Note over App: Decodifica payload BR Code<br/>Extrai chave (ID 26-01)<br/>Verifica CRC16
+    App->>DICT: Consulta chave Pix + CPF/CNPJ pagador
+    DICT-->>App: Dados do recebedor (banco, conta, nome mascarado)
+    App->>Pagador: Tela de confirmação<br/>(nome recebedor, valor editável se livre)
+    Pagador->>App: Confirma pagamento
+    App->>SPI: pacs.008 — ordem de transferência
+    SPI-->>App: pacs.002 — confirmação de liquidação
+    SPI->>PSPRec: Crédito na conta do recebedor
+    PSPRec->>Recebedor: Notificação (push / SMS)
+    </pre>
+  </div>
+
+  <h3>Diagrama de sequência — QR Dinâmico Cob</h3>
+  <div class="mermaid-wrap">
+    <div class="mermaid-title">📊 Sequência: criação da cobrança → webhook de confirmação</div>
+    <pre class="mermaid">
+sequenceDiagram
+    actor SisRec as 🖥️ Sistema Recebedor
+    participant APIPix as API Pix (PSP Rec.)
+    actor Pagador as 📱 Pagador
+    participant App as App PSP Pagador
+    participant DICT as DICT (BCB)
+    participant SPI as SPI (BCB)
+
+    SisRec->>APIPix: PUT /cob/{txid} — cria cobrança (valor, chave, expiracao)
+    APIPix-->>SisRec: URL dinâmica + status ATIVA
+    Note over SisRec: Gera QR Code com a URL (sem https://)
+    Pagador->>App: Escaneia QR Code
+    App->>APIPix: GET https://{URL}
+    Note over APIPix: Registra campo "apresentacao" (timestamp)<br/>Verifica status ≠ CONCLUIDA / não expirado
+    APIPix-->>App: Payload JSON (valor, txid, recebedor, calendario)
+    App->>DICT: Consulta chave do payload
+    DICT-->>App: Dados bancários do recebedor
+    App->>Pagador: Tela de confirmação (valor NÃO editável)
+    Pagador->>App: Confirma
+    App->>SPI: pacs.008
+    SPI-->>App: pacs.002 ✓
+    SPI->>APIPix: Crédito + endToEndId
+    Note over APIPix: Status → CONCLUIDA (irreversível)
+    APIPix->>SisRec: Webhook POST {txid, endToEndId, valor}
+    Note over SisRec: Concilia pedido pelo txid
+    </pre>
+  </div>
+
+  <h3>Diagrama de sequência — QR Dinâmico CobV</h3>
+  <div class="mermaid-wrap">
+    <div class="mermaid-title">📊 Sequência: cobrança com vencimento, juros e multa</div>
+    <pre class="mermaid">
+sequenceDiagram
+    actor SisRec as 🖥️ Sistema Recebedor
+    participant APIPix as API Pix (PSP Rec.)
+    actor Pagador as 📱 Pagador
+    participant App as App PSP Pagador
+    participant DICT as DICT (BCB)
+    participant SPI as SPI (BCB)
+
+    SisRec->>APIPix: PUT /cobv/{txid} — cobrança com vencimento, juros, multa, desconto
+    Note over APIPix: Armazena: Vo, data venc., Va, Vd, Vj, Vm
+    APIPix-->>SisRec: URL dinâmica + status ATIVA
+    Note over SisRec: Gera QR Code Dinâmico
+    Pagador->>App: Escaneia QR Code
+    App->>APIPix: GET https://{URL}
+    Note over APIPix: Registra "apresentacao" (agora)<br/>Calcula Vf = Vo − Va − Vd + Vj + Vm<br/>com base em: hoje vs. data de vencimento
+    APIPix-->>App: JSON com Vf calculado + detalhes (juros/desconto aplicado)
+    App->>DICT: Consulta chave
+    DICT-->>App: Dados do recebedor
+    App->>Pagador: Tela: Vf, vencimento, encargos discriminados
+    Pagador->>App: Confirma
+    App->>SPI: pacs.008 com valor Vf
+    SPI-->>App: pacs.002 ✓
+    SPI->>APIPix: Crédito
+    Note over APIPix: Status → CONCLUIDA (irreversível)
+    APIPix->>SisRec: Webhook POST {txid, endToEndId, Vf}
+    </pre>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">🔐</div>
+    <div class="callout-body">
+      <strong>O app pagador não confia no PSP recebedor</strong>
+      Mesmo que o payload JSON diga que o valor é R$0,01, o PSP pagador sempre consulta o DICT independentemente para obter os dados bancários reais. O DICT é a fonte de verdade, não o payload do recebedor.
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual Operacional do SPI</span><span class="ref-ver">v7.x</span><span class="ref-art">Cap. 4 — Fluxos de pagamento e liquidação LBTR</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/V_ManualOperacionaldoSPI.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Manual de Padrões para Iniciação do Pix</span><span class="ref-ver">v2.9.0</span><span class="ref-art">Cap. 5 — Fluxos de iniciação por QR Code</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacao.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Arts. 47 a 55 — Liquidação e prazos no SPI</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 9 ===== -->
+<section class="section" id="s9">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2 class="section-title">API Pix — conceitos fundamentais</h2>
+  </div>
+
+  <p>A API Pix é o que permite ao recebedor (empresa, fintech, desenvolvedor) automatizar toda a gestão de cobranças. É uma API REST com autenticação OAuth 2.0, disponível em: <a href="https://github.com/bacen/pix-api" style="color:var(--verde-pix)">github.com/bacen/pix-api</a></p>
+
+  <h3>Entidades da API e seus estados</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>O que representa</th><th>Estados principais</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>/cob</code></td>
+          <td>Cobrança imediata</td>
+          <td>ATIVA → CONCLUIDA / REMOVIDO</td>
+        </tr>
+        <tr>
+          <td><code>/cobv</code></td>
+          <td>Cobrança com vencimento</td>
+          <td>ATIVA → CONCLUIDA / REMOVIDO</td>
+        </tr>
+        <tr>
+          <td><code>/pix</code></td>
+          <td>Pagamento recebido</td>
+          <td>Existe independente de cobrança</td>
+        </tr>
+        <tr>
+          <td><code>/pix/{e2eId}/devolucao</code></td>
+          <td>Devolução de um Pix</td>
+          <td>EM_PROCESSAMENTO → DEVOLVIDO / NAO_REALIZADO</td>
+        </tr>
+        <tr>
+          <td><code>/webhook</code></td>
+          <td>URL de notificação push</td>
+          <td>Dispara quando Pix com txid é creditado</td>
+        </tr>
+        <tr>
+          <td><code>/loc</code></td>
+          <td>PayloadLocation — URL reutilizável</td>
+          <td>Associa/desassocia cobranças ao longo do tempo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>PayloadLocation (/loc) — o recurso mais subestimado</h3>
+  <div class="callout tip">
+    <div class="callout-icon">🔄</div>
+    <div class="callout-body">
+      <strong>Para QR Codes impressos</strong>
+      Imagine um totem de autoatendimento com QR impresso. Todo dia precisa cobrar valores diferentes. Com <code>/loc</code>, a URL do QR não muda, mas o payload JSON que ela retorna pode ser atualizado para apontar para a cobrança do dia. Um QR impresso para sempre, cobranças dinâmicas.
+    </div>
+  </div>
+
+  <h3>Cardinalidade entre entidades</h3>
+  <p style="font-size:0.9rem;color:var(--cinza-texto);margin-bottom:16px">Como as entidades da API Pix se relacionam entre si — quantos de cada lado podem existir.</p>
+  <div class="card-rel-grid">
+
+    <div class="card-rel">
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">🧾</span>
+        <span class="card-rel-label">Cobrança<br><small>txid</small></span>
+      </div>
+      <div class="card-rel-center">
+        <span class="card-rel-num left">1</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-badge">1:N</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-num right">N</span>
+      </div>
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">💸</span>
+        <span class="card-rel-label">Pix<br><small>recebidos</small></span>
+      </div>
+      <div class="card-rel-note">Uma cobrança pode registrar múltiplos Pix com o mesmo <code>txid</code> — ex: retentativas ou pagamentos parcelados.</div>
+    </div>
+
+    <div class="card-rel">
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">💸</span>
+        <span class="card-rel-label">Pix<br><small>liquidado</small></span>
+      </div>
+      <div class="card-rel-center">
+        <span class="card-rel-num left">1</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-badge">1:N</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-num right">N</span>
+      </div>
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">↩️</span>
+        <span class="card-rel-label">Devoluções<br><small>parciais ou total</small></span>
+      </div>
+      <div class="card-rel-note">Um único Pix pode ser devolvido em partes — ex: R$ 150 devolvidos em 3 tranches de R$ 50.</div>
+    </div>
+
+    <div class="card-rel card-rel--one">
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">📍</span>
+        <span class="card-rel-label">PayloadLocation<br><small>/loc/{id}</small></span>
+      </div>
+      <div class="card-rel-center">
+        <span class="card-rel-num left">1</span>
+        <span class="card-rel-arrow">⟺</span>
+        <span class="card-rel-badge card-rel-badge--one">1:1</span>
+        <span class="card-rel-arrow">⟺</span>
+        <span class="card-rel-num right">1</span>
+      </div>
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">🧾</span>
+        <span class="card-rel-label">Cobrança<br><small>ativa</small></span>
+      </div>
+      <div class="card-rel-note">Um <code>/loc</code> só pode estar vinculado a uma cobrança por vez. Desvincular + vincular de novo é possível, mas nunca simultâneo.</div>
+    </div>
+
+    <div class="card-rel">
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">🔄</span>
+        <span class="card-rel-label">Recorrência<br><small>Pix Automático</small></span>
+      </div>
+      <div class="card-rel-center">
+        <span class="card-rel-num left">1</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-badge">1:N</span>
+        <span class="card-rel-arrow">→</span>
+        <span class="card-rel-num right">N</span>
+      </div>
+      <div class="card-rel-side">
+        <span class="card-rel-emoji">✅</span>
+        <span class="card-rel-label">Solicitações<br><small>de confirmação</small></span>
+      </div>
+      <div class="card-rel-note">Cada ciclo de cobrança do Pix Automático gera uma nova solicitação vinculada ao mesmo contrato de recorrência.</div>
+    </div>
+
+  </div>
+
+  <h3>Webhook — notificação em tempo real</h3>
+  <div class="code-block">
+<span class="comment">// Payload que o PSP envia para a URL de webhook do recebedor:</span>
+{
+  <span class="key">"pix"</span>: [
+    {
+      <span class="key">"endToEndId"</span>:  <span class="str">"E12345678202511171435PRH1a2B3c4D"</span>,
+      <span class="key">"txid"</span>:        <span class="str">"ABC123DEF456GHI789JKL012MNO34"</span>,
+      <span class="key">"valor"</span>:       <span class="str">"150.00"</span>,
+      <span class="key">"horario"</span>:     <span class="str">"2025-11-17T14:35:57Z"</span>,
+      <span class="key">"pagador"</span>: {
+        <span class="key">"cpf"</span>:  <span class="str">"12345678900"</span>,
+        <span class="key">"nome"</span>: <span class="str">"Maria Oliveira"</span>
+      },
+      <span class="key">"infoPagador"</span>: <span class="str">"Ref. Pedido #9087"</span>  <span class="comment">// veio do solicitacaoPagador</span>
+    }
+  ]
+}
+  </div>
+  <p style="font-size:0.88rem; color:var(--cinza-texto)">O webhook só dispara para Pix com txid. Pix sem txid (pagamentos sem cobrança associada) não geram notificação.</p>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual ICP — API Pix</span><span class="ref-ver">v2.6</span><span class="ref-art">Especificação OpenAPI completa: cobranças, webhooks, PayloadLocation</span> — <a href="https://bacen.github.io/pix-api/" target="_blank">bacen.github.io/pix-api</a></li>
+      <li><span class="ref-doc">Manual ICP — API Pix (PDF)</span><span class="ref-ver">v2.6</span><span class="ref-art">Seções 3–7: autenticação OAuth 2.0, mTLS, cardinalidade e webhooks</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX_ManualdeInterfacedeProgramacaodeAplicacoes.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 195/2022</span><span class="ref-ver">consolidada</span><span class="ref-art">Art. 17 IV — idempotência obrigatória nos participantes do SPI</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 10 ===== -->
+<section class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2 class="section-title">Segurança e mecanismos de proteção</h2>
+  </div>
+
+  <div class="security-item">
+    <div class="security-icon">🔐</div>
+    <div class="security-text">
+      <strong>CRC16 — integridade do QR Code</strong>
+      <p>Todo QR Code termina com 4 chars de CRC16. Qualquer adulteração no payload (troca de chave, mudança de valor) invalida o checksum e o pagamento é recusado automaticamente.</p>
+    </div>
+  </div>
+  <div class="security-item">
+    <div class="security-icon">🌐</div>
+    <div class="security-text">
+      <strong>HTTPS obrigatório para QR Dinâmico</strong>
+      <p>A URL do QR Dinâmico deve ser acessada exclusivamente via HTTPS com domínio válido. O app adiciona automaticamente o prefixo — não há como servir payload via HTTP.</p>
+    </div>
+  </div>
+  <div class="security-item">
+    <div class="security-icon">🚫</div>
+    <div class="security-text">
+      <strong>Sem renderização HTML</strong>
+      <p>O campo <code>solicitacaoPagador</code> (a "mensagem" do recebedor) é exibido como texto plano. Apps <em>não devem</em> renderizar HTML. Isso previne ataques de phishing via QR Code.</p>
+    </div>
+  </div>
+  <div class="security-item">
+    <div class="security-icon">🪣</div>
+    <div class="security-text">
+      <strong>Token Bucket no DICT</strong>
+      <p>Para evitar ataques de leitura em massa (varredura do DICT para mapear CPFs/chaves), o DICT usa algoritmo Token Bucket. PF: 100 fichas. PJ: 1.000 fichas. Consulta inválida consome 20 fichas. Receber um Pix reabastece o balde.</p>
+    </div>
+  </div>
+  <div class="security-item">
+    <div class="security-icon">🔍</div>
+    <div class="security-text">
+      <strong>MED — Mecanismo Especial de Devolução</strong>
+      <p>Quando um usuário é vítima de golpe, seu PSP pode acionar a "Recuperação de Valores" no DICT. O sistema rastreia o grafo de transações subsequentes e pode bloquear/devolver valores em cascata, mesmo que o dinheiro já tenha sido movimentado várias vezes.</p>
+    </div>
+  </div>
+  <div class="security-item">
+    <div class="security-icon">📊</div>
+    <div class="security-text">
+      <strong>Informações de segurança por chave</strong>
+      <p>PSPs podem consultar o DICT para saber o histórico de fraudes de uma chave: notificações confirmadas, tipo de fraude (conta laranja, falsidade ideológica, golpista), valores envolvidos — nos últimos 90 dias, 12 meses e 60 meses.</p>
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Resolução BCB nº 85/2021</span><span class="ref-ver">atualizada pela Res. 538/2025</span><span class="ref-art">Art. 3-A — MFA obrigatório para acesso administrativo ao ambiente SPI</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 403/2024</span><span class="ref-ver">vigente</span><span class="ref-art">Dispositivos homologados e requisitos de segurança para participantes RSFN</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+      <li><span class="ref-doc">Manual Operacional do DICT</span><span class="ref-ver">v8.2</span><span class="ref-art">Cap. 5 — Token Bucket, MED e mecanismos anti-fraude</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IV_ManualOperacionaldoDICT.pdf" target="_blank">PDF BCB</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 11 ===== -->
+<section class="section" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2 class="section-title">Obrigações de UX — o que o regulador exige</h2>
+  </div>
+
+  <p>O Manual de Experiência do Usuário do BCB (v7.3) define exatamente o que os apps devem e devem exibir. Não são recomendações — são obrigações regulatórias.</p>
+
+  <h3>Do lado do recebedor (quem gera o QR)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Obrigação</th><th>Tipo</th></tr></thead>
+      <tbody>
+        <tr><td>Disponibilizar geração de QR Code Estático</td><td><span class="obrig">OBRIGATÓRIO</span></td></tr>
+        <tr><td>Permitir valor livre (pagador define) e valor fixo</td><td><span class="obrig">OBRIGATÓRIO</span></td></tr>
+        <tr><td>QR Code deve ser compartilhável (imagem + Copia e Cola)</td><td><span class="obrig">OBRIGATÓRIO</span></td></tr>
+        <tr><td>Exibir o QR na tela imediatamente após geração</td><td><span class="opcion">Recomendado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Do lado do pagador (tela de confirmação)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Campo</th><th>Estático</th><th>Dinâmico Cob</th><th>Dinâmico CobV</th></tr></thead>
+      <tbody>
+        <tr><td>Nome do recebedor</td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>CPF/CNPJ mascarado</td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>PSP do recebedor</td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>Valor editável pelo pagador</td><td><span class="obrig">✓ Se livre</span></td><td>❌ Não</td><td>❌ Não</td></tr>
+        <tr><td>Valor não editável</td><td>—</td><td><span class="obrig">✓ Obrig.</span></td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>Data de vencimento</td><td>—</td><td>—</td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>Desconto (quando houver)</td><td>—</td><td>—</td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>Juros e multa (quando houver)</td><td>—</td><td>—</td><td><span class="obrig">✓ Obrig.</span></td></tr>
+        <tr><td>Valor final calculado</td><td>—</td><td>—</td><td><span class="obrig">✓ Obrig.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Pix Copia e Cola — obrigações</h3>
+  <div class="card">
+    <ul style="padding-left:20px; font-size:0.9rem; line-height:2">
+      <li><span class="obrig">OBRIGATÓRIO</span> — disponível na tela principal do ambiente Pix</li>
+      <li><span class="obrig">OBRIGATÓRIO</span> — detecção automática de código Pix na área de transferência</li>
+      <li><span class="obrig">OBRIGATÓRIO</span> — fluxo idêntico ao QR Code após inserção do código</li>
+    </ul>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚨</div>
+    <div class="callout-body">
+      <strong>QR Code expirado = bloqueio obrigatório</strong>
+      Se o QR Code estiver expirado (prazo da Cob venceu) ou com status diferente de ATIVA, o app pagador <em>deve</em> informar o usuário claramente e <em>não deve</em> prosseguir com o pagamento. Não é opcional.
+    </div>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências</div>
+    <ul>
+      <li><span class="ref-doc">Manual de Experiência do Usuário para o Pix</span><span class="ref-ver">v7.3 (dez/2025)</span><span class="ref-art">Caps. 3–5 — Tela do recebedor, tela do pagador, Pix Copia e Cola</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/III_ManualdeExperienciausuario.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 1/2020</span><span class="ref-ver">consolidada</span><span class="ref-art">Arts. 30 a 37 — Obrigações de experiência do usuário</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== SEÇÃO 12 ===== -->
+<section class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2 class="section-title">Resumo executivo — o que guardar</h2>
+  </div>
+
+  <div class="card" style="border-left: 4px solid var(--verde-pix)">
+    <h3 style="border:none; padding:0; margin-top:0; color:var(--verde-pix)">🎯 As 7 ideias que não podem sair da cabeça</h3>
+    <ol style="padding-left:20px; line-height:2.2; margin-top:12px; font-size:0.92rem">
+      <li><strong>BR Code = EMV adaptado ao Brasil.</strong> O campo GUI <code>br.gov.bcb.pix</code> é a assinatura do Pix.</li>
+      <li><strong>Estático = dados no QR. Dinâmico = URL no QR.</strong> A diferença muda tudo: conciliação, expiração, controle.</li>
+      <li><strong>Todo QR tem uma chave.</strong> O app sempre consulta o DICT com essa chave para resolver banco/conta.</li>
+      <li><strong>CobV é o boleto do Pix.</strong> Juros, multa, desconto, vencimento — tudo configurável via API Pix.</li>
+      <li><strong>txid é o ID de conciliação.</strong> No estático: 25 chars no campo 62-05. No dinâmico: 26–35 chars no payload JSON.</li>
+      <li><strong>Webhook = eficiência.</strong> Sem polling. O PSP notifica o recebedor quando o Pix cai, com o txid para reconciliar automaticamente.</li>
+      <li><strong>UX não é opcional.</strong> O BCB define campos obrigatórios na tela de confirmação. PSP que não exibe é PSP irregular.</li>
+    </ol>
+  </div>
+
+  <h3>Mapa mental rápido</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pergunta</th><th>Resposta</th></tr></thead>
+      <tbody>
+        <tr><td>Quem define o padrão do QR?</td><td>BCB, via Manual de Padrões (baseado em EMV)</td></tr>
+        <tr><td>O que é o DICT?</td><td>Diretório central que mapeia chave → conta bancária</td></tr>
+        <tr><td>Como o app sabe quem vai receber?</td><td>Consulta o DICT com a chave que veio no QR</td></tr>
+        <tr><td>Por que o QR dinâmico é melhor para empresas?</td><td>API Pix permite criar, monitorar e conciliar cobranças programaticamente</td></tr>
+        <tr><td>O que garante que o QR não foi adulterado?</td><td>CRC16 no campo 63 — checksum de integridade</td></tr>
+        <tr><td>Como recuperar dinheiro de um golpe?</td><td>MED — Recuperação de Valores via DICT, rastrea grafo de transações</td></tr>
+        <tr><td>QR Copia e Cola é diferente do QR Code?</td><td>Não — é o mesmo payload, só que em texto</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3>Referências normativas</h3>
+  <div class="card" style="font-size:0.85rem; line-height:2">
+    <ul style="padding-left:20px; color:var(--cinza-texto)">
+      <li><strong>Resolução BCB nº 1/2020</strong> — Regulamento Pix (vigente 04/03/2026) — Arts. 6, 11-A a 11-D</li>
+      <li><strong>Manual de Padrões para Iniciação do Pix v2.9.0</strong> — Seções 2.1–2.8, 3.1, Anexo I e Anexo III</li>
+      <li><strong>Manual de Experiência do Usuário Pix v7.3</strong> (dez/2025) — Caps. 05, 06, 07, 13</li>
+      <li><strong>Manual Operacional do DICT v8.2</strong> (BCB, 10/04/2026 — vigência 11/05/2026)</li>
+      <li><strong>Resolução BCB nº 88/2021</strong> — inclusão da CobV</li>
+    </ul>
+  </div>
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências — todos os documentos normativos</div>
+    <ul>
+      <li><span class="ref-doc">Portal de Normas Pix</span><span class="ref-art">Índice completo de resoluções, instruções normativas e manuais operacionais do Pix</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">bcb.gov.br/estabilidadefinanceira/pix-normas</a></li>
+      <li><span class="ref-doc">GitHub BCB — Pix API</span><span class="ref-art">Especificação OpenAPI interativa da API Pix</span> — <a href="https://bacen.github.io/pix-api/" target="_blank">bacen.github.io/pix-api</a></li>
+    </ul>
+  </div>
+</section>
+
+</div>
+
+<!-- ===== SEÇÃO 13 — TÉCNICA DE DESENVOLVEDOR ===== -->
+<div class="container">
+<section class="section" id="s13">
+  <div class="section-header">
+    <div class="section-num" style="background:#c0392b">T</div>
+    <h2 class="section-title" style="color:#c0392b">Seção Técnica — Implementação para Desenvolvedores</h2>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🧑‍💻</div>
+    <div class="callout-body">
+      <strong>Para quem é essa seção</strong>
+      Engenheiros e arquitetos implementando Pix QR Code dentro de um internet banking (PSP). Cobre stack de mensageria, geração do BR Code, API Pix server/client, segurança obrigatória e anti-fraude. Baseado em Res. BCB 195/2022 (SPI), Res. BCB 85/2021 (segurança), Res. BCB 403/2024 (dispositivos) e Catálogo de Serviços do SFN v5.12.
+    </div>
+  </div>
+
+  <!-- T1: Participação SPI -->
+  <h3>T1. Primeiro passo: participação no SPI</h3>
+  <p>Antes de qualquer linha de código, a instituição precisa ser participante do SPI — o sistema de liquidação do BCB. Há duas modalidades (Res. BCB 195/2022, Art. 14):</p>
+
+  <div class="compare">
+    <div class="compare-col estatico">
+      <h4>Participante Direto</h4>
+      <ul>
+        <li>Titular de Conta PI no BCB</li>
+        <li>Conexão direta à RSFN</li>
+        <li>Bancos comerciais, múltiplos, caixas, cooperativas de crédito</li>
+        <li>Responsabilidade total pela liquidação</li>
+        <li>Deve estar conectado 24/7/365 (Art. 18, II)</li>
+      </ul>
+    </div>
+    <div class="compare-col dinamico">
+      <h4>Participante Indireto</h4>
+      <ul>
+        <li>Sem Conta PI própria</li>
+        <li>Opera via um banco liquidante (direto)</li>
+        <li>IPs sem autorização BCB são obrigados a ser indiretos</li>
+        <li>Conexão com o liquidante é livre (contratual)</li>
+        <li>Vedado para bancos comerciais e múltiplos</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">📌</div>
+    <div class="callout-body">
+      <strong>PSTI — Provedor de Serviços de TI</strong>
+      A conexão à RSFN pode ser feita diretamente via circuito de telecom, ou via um PSTI (Provedor de Serviços de Tecnologia da Informação) autorizado pelo BCB. O PSTI cuida da infraestrutura de rede, mas a responsabilidade normativa permanece com o participante.
+    </div>
+  </div>
+
+  <!-- T2: Stack de mensageria -->
+  <h3>T2. Stack de mensageria — RSFN + ISO 20022</h3>
+  <p>O Pix trafega na <strong>RSFN (Rede do Sistema Financeiro Nacional)</strong> — uma rede dedicada, segregada da internet pública. As mensagens seguem o padrão ISO 20022 em XML.</p>
+
+  <h4>Estrutura de toda mensagem RSFN</h4>
+  <div class="code-block">
+<span class="comment">// Toda mensagem RSFN é composta por três camadas:</span>
+
+<span class="label">BCMSG</span>  (≤ 2.768 bytes)   <span class="comment">// Cabeçalho de controle de transporte</span>
+  └─ NumSeq                          <span class="comment">// Sequência para mensagens em partes</span>
+  └─ IndUltMsg = 'S'                 <span class="comment">// 'S' na última parte</span>
+
+<span class="label">SISMSG</span> (≤ 30.000 bytes)  <span class="comment">// Envelope do sistema SFN</span>
+
+<span class="label">USERMSG</span> (≤ 1 MB)        <span class="comment">// Payload de negócio — aqui vive o ISO 20022</span>
+  └─ pacs.008                        <span class="comment">// Ordem de pagamento (Pix de saída)</span>
+  └─ pacs.004                        <span class="comment">// Devolução</span>
+  └─ pacs.002                        <span class="comment">// Status / confirmação</span>
+
+<span class="comment">// Codificação: UTF-8 para mensagens SPI (LPI group)</span>
+  </div>
+
+  <h4>Grupo LPI — eventos do Pix no Catálogo de Serviços SFN (v5.12)</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Evento</th><th>Direção</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>LPI0001</code></td><td>IP → SPI</td><td>Envio de transferência Pix (pacs.008)</td></tr>
+        <tr><td><code>LPI0002</code></td><td>SPI → IP</td><td>Resposta ao envio (aceitação/rejeição)</td></tr>
+        <tr><td><code>LPI0003</code></td><td>SPI → IP</td><td>Notificação de recebimento de Pix</td></tr>
+        <tr><td><code>LPI0004</code></td><td>IP → SPI</td><td>Envio de devolução (pacs.004)</td></tr>
+        <tr><td><code>LPI0005</code></td><td>SPI → IP</td><td>Resposta à devolução</td></tr>
+        <tr><td><code>LPI0006</code></td><td>IP → SPI</td><td>Consulta de transferência por E2E ID</td></tr>
+        <tr><td><code>LPI0007</code></td><td>SPI → IP</td><td>Resposta à consulta</td></tr>
+        <tr><td><code>LPI0008</code></td><td>SPI → IP</td><td>Aviso de liquidação</td></tr>
+        <tr><td><code>LPI0009</code></td><td>IP → SPI</td><td>Cancelamento de ordem (antes da liquidação)</td></tr>
+        <tr><td><code>LPI0011/12</code></td><td>IP ↔ SPI</td><td>Consulta de extrato da Conta PI</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- T3: E2E ID -->
+  <h3>T3. End-to-End ID (E2EID) — formato obrigatório</h3>
+  <p>Toda transação Pix tem um <strong>E2EID</strong> único, gerado pelo PSP emissor. É o identificador que viaja na mensagem pacs.008 e permite rastrear a transação no SPI.</p>
+
+  <div class="code-block">
+<span class="comment">// Formato: 32 caracteres alfanuméricos</span>
+<span class="comment">// E + [8 ISPB do emissor] + [8 data yyyyMMdd] + [4 hora HHmm] + [11 aleatórios]</span>
+
+E<span class="key">12345678</span><span class="str">20251117</span><span class="val">1435</span><span class="label">PRH1a2B3c4D</span>
+│ │        │        │    │
+│ │        │        │    └─ 11 chars aleatórios (a-z, A-Z, 0-9)
+│ │        │        └────── Hora UTC (HHmm)
+│ │        └─────────────── Data UTC (yyyyMMdd)
+│ └──────────────────────── ISPB do participante emissor (8 dígitos)
+└────────────────────────── Letra 'E' (fixo)
+
+<span class="comment">// Exemplo real:</span>
+<span class="str">"E12345678202511171435PRH1a2B3c4D"</span>  <span class="comment">// 32 chars</span>
+
+<span class="comment">// Atenção: horário sempre em UTC (não horário local de Brasília)</span>
+<span class="comment">// O SPI usa UTC como padrão — Art. 10 Res. BCB 195/2022</span>
+  </div>
+
+  <div class="callout tip" style="margin-top:24px">
+    <div class="callout-icon">🆚</div>
+    <div class="callout-body">
+      <strong>txid vs. E2EID — qual a diferença?</strong>
+      <div class="table-wrap" style="margin-top:12px;margin-bottom:0">
+        <table>
+          <thead>
+            <tr><th></th><th>txid</th><th>E2EID</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Quem gera</strong></td><td>PSP <em>recebedor</em></td><td>PSP <em>pagador</em></td></tr>
+            <tr><td><strong>O que identifica</strong></td><td>A <strong>cobrança</strong> (Cob/CobV)</td><td>A <strong>transação</strong> no SPI (pacs.008)</td></tr>
+            <tr><td><strong>Quando existe</strong></td><td>Ao criar a cobrança — antes do pagamento</td><td>Só no momento do envio do Pix</td></tr>
+            <tr><td><strong>Onde aparece</strong></td><td>No QR Code (campo 62/05) e na API Pix</td><td>Na mensagem SPI e no retorno do webhook</td></tr>
+            <tr><td><strong>Formato</strong></td><td>Até 35 chars alfanuméricos (livre)</td><td>32 chars fixos: <code>E+ISPB+data+hora+rand</code></td></tr>
+            <tr><td><strong>Cardinalidade</strong></td><td colspan="2">1 txid pode ter N E2EIDs (retentativas ou pagamentos parciais)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.82rem;margin-top:10px;margin-bottom:0;color:var(--cinza-texto)">
+        <strong>Analogia:</strong> o txid é o número do <em>boleto</em> (identifica a dívida); o E2EID é o comprovante de <em>cada transferência</em> feita para quitá-la. Você usa o txid para conciliar cobranças no seu sistema e o E2EID para rastrear o dinheiro no SPI.
+      </p>
+    </div>
+  </div>
+
+    <!-- T4: Gerando o BR Code -->
+  <h3>T4. Gerando o payload do BR Code (QR Estático)</h3>
+  <p>O payload é uma string de texto concatenando campos no formato <code>ID (2 chars) + Comprimento (2 chars) + Valor</code>, finalizando com CRC16.</p>
+
+  <div class="code-block">
+<span class="comment">// Função de geração em pseudocódigo:</span>
+
+<span class="key">function</span> field(id, value):
+    length = zeroPad(value.length, 2)
+    <span class="key">return</span> id + length + value
+
+<span class="comment">// Montagem do payload:</span>
+payload  = field(<span class="str">"00"</span>, <span class="str">"01"</span>)                     <span class="comment">// Payload Format Indicator</span>
+payload += field(<span class="str">"26"</span>,                            <span class="comment">// Merchant Account Info</span>
+             field(<span class="str">"00"</span>, <span class="str">"br.gov.bcb.pix"</span>) +
+             field(<span class="str">"01"</span>, chave)                    <span class="comment">// Chave Pix</span>
+           )
+payload += field(<span class="str">"52"</span>, <span class="str">"0000"</span>)                    <span class="comment">// MCC</span>
+payload += field(<span class="str">"53"</span>, <span class="str">"986"</span>)                     <span class="comment">// Moeda BRL</span>
+<span class="key">if</span> valor:
+    payload += field(<span class="str">"54"</span>, formatDecimal(valor))   <span class="comment">// ex: "150.00"</span>
+payload += field(<span class="str">"58"</span>, <span class="str">"BR"</span>)                      <span class="comment">// País</span>
+payload += field(<span class="str">"59"</span>, nome)                      <span class="comment">// Nome recebedor (max 25)</span>
+payload += field(<span class="str">"60"</span>, cidade)                    <span class="comment">// Cidade (max 15)</span>
+payload += field(<span class="str">"62"</span>, field(<span class="str">"05"</span>, txid || <span class="str">"***"</span>)) <span class="comment">// txid</span>
+
+<span class="comment">// CRC16 — SEMPRE o último campo:</span>
+payload += <span class="str">"6304"</span>                                 <span class="comment">// Prepara campo 63 com "0000"</span>
+crc = crc16_ccitt(payload)                         <span class="comment">// Calcula sobre tudo incluindo "6304"</span>
+payload += zeroPadHex(crc, 4).toUpperCase()        <span class="comment">// ex: "1D3D"</span>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚙️</div>
+    <div class="callout-body">
+      <strong>CRC16 — algoritmo exato</strong>
+      Usar <strong>CRC-16/CCITT-FALSE</strong> (polinômio 0x1021, valor inicial 0xFFFF, sem inversão de bits). O campo 63 deve ser incluído no cálculo com o valor <code>6304</code> (os 4 zeros do hash ainda não calculado). O resultado vai em hexadecimal maiúsculo, 4 chars, preenchido com zeros à esquerda.
+    </div>
+  </div>
+
+
+  <h4>Para QR Dinâmico — a URL substitui os dados</h4>
+  <div class="code-block">
+<span class="comment">// No dinâmico, o campo 01 da faixa 26 é a URL sem https://</span>
+<span class="comment">// A URL aponta para o endpoint de cobrança na API Pix do PSP recebedor:</span>
+
+payload += field(<span class="str">"26"</span>,
+             field(<span class="str">"00"</span>, <span class="str">"br.gov.bcb.pix"</span>) +
+             field(<span class="str">"25"</span>, <span class="str">"api.banco.com.br/cobr/Hj2Kx9mNpQrT"</span>)  <span class="comment">// ← URL sem https://</span>
+           )
+payload += field(<span class="str">"52"</span>, <span class="str">"0000"</span>)
+payload += field(<span class="str">"53"</span>, <span class="str">"986"</span>)
+<span class="comment">// NÃO inclui campo 54 (valor) — vem da cobrança, não do QR</span>
+payload += field(<span class="str">"58"</span>, <span class="str">"BR"</span>)
+payload += field(<span class="str">"59"</span>, <span class="str">"Loja Exemplo"</span>)
+payload += field(<span class="str">"60"</span>, <span class="str">"SAO PAULO"</span>)
+payload += field(<span class="str">"62"</span>, field(<span class="str">"05"</span>, <span class="str">"***"</span>))  <span class="comment">// txid pode ser "***" no dinâmico</span>
+payload += <span class="str">"6304"</span>
+crc = crc16_ccitt(payload)
+payload += zeroPadHex(crc, 4).toUpperCase()
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>QR Dinâmico não carrega valor no payload do QR</strong>
+      O valor está na cobrança (<code>Cob</code>/<code>CobV</code>) que a URL retorna via API Pix. O app do pagador lê o QR, faz GET na URL, recebe o JSON com valor, vencimento e dados do recebedor — e só então exibe a tela de confirmação.
+    </div>
+  </div>
+
+  <!-- T5: API Pix como PSP recebedor -->
+  <h3>T5. API Pix como PSP recebedor — criando cobranças</h3>
+  <p>O Manual ICP define a API REST que PSPs expostos como recebedores devem implementar. O endpoint principal cria uma <strong>cobrança imediata</strong> (<code>Cob</code>) ou com vencimento (<code>CobV</code>).</p>
+
+  <h4>POST /cob — criar cobrança imediata</h4>
+  <div class="code-block">
+<span class="comment">// Request: PUT /cob/{txid} ou POST /cob (txid gerado automaticamente)</span>
+{
+  <span class="key">"calendario"</span>: { <span class="str">"expiracao"</span>: <span class="val">3600</span> },       <span class="comment">// segundos até vencer</span>
+  <span class="key">"devedor"</span>: {
+    <span class="str">"cpf"</span>: <span class="str">"12345678909"</span>,
+    <span class="str">"nome"</span>: <span class="str">"João Silva"</span>
+  },
+  <span class="key">"valor"</span>: {
+    <span class="str">"original"</span>: <span class="str">"150.00"</span>,
+    <span class="str">"modalidadeAlteracao"</span>: <span class="val">0</span>           <span class="comment">// 0=fixo, 1=pagador pode alterar</span>
+  },
+  <span class="key">"chave"</span>: <span class="str">"pagamentos@empresa.com.br"</span>,
+  <span class="key">"solicitacaoPagador"</span>: <span class="str">"Pedido #4872"</span>,
+  <span class="key">"infoAdicionais"</span>: [
+    { <span class="str">"nome"</span>: <span class="str">"Produto"</span>, <span class="str">"valor"</span>: <span class="str">"Kit Fibra 300"</span> }
+  ]
+}
+
+<span class="comment">// Response 201: BCB retorna o txid + location + pixCopiaECola</span>
+{
+  <span class="key">"txid"</span>: <span class="str">"Hj2Kx9mNpQrTwXzAbCdEfGh"</span>,
+  <span class="key">"status"</span>: <span class="str">"ATIVA"</span>,
+  <span class="key">"pixCopiaECola"</span>: <span class="str">"00020126..."</span>,     <span class="comment">// BR Code pronto para gerar QR</span>
+  <span class="key">"location"</span>: <span class="str">"api.banco.com.br/cobr/Hj2Kx9mNpQrTwXzAbCdEfGh"</span>
+}
+  </div>
+
+  <h4>GET /cob/{txid} — consultar status</h4>
+  <div class="code-block">
+<span class="comment">// Poleia a cobrança para verificar se foi paga:</span>
+<span class="comment">// status: ATIVA | CONCLUIDA | REMOVIDA_PELO_USUARIO_RECEBEDOR | REMOVIDA_PELO_PSP</span>
+
+<span class="key">if</span> cob.status === <span class="str">"CONCLUIDA"</span>:
+    <span class="comment">// cob.pix[0].endToEndId  → E2EID da transação</span>
+    <span class="comment">// cob.pix[0].valor       → valor efetivamente pago</span>
+    <span class="comment">// cob.pix[0].horario     → timestamp ISO 8601</span>
+    confirmPayment(cob.pix[0])
+  </div>
+
+  <!-- T6: Webhook -->
+  <h3>T6. Webhook — recebendo notificação de pagamento</h3>
+  <p>Ao invés de pollear a API, configure um <strong>webhook</strong> para receber <code>POST</code> do PSP assim que o Pix for liquidado. O endpoint deve estar acessível publicamente com TLS válido.</p>
+
+  <h4>PUT /webhook/{chave} — cadastrar URL de callback</h4>
+  <div class="code-block">
+<span class="comment">// Registra a URL que vai receber os POSTs:</span>
+{ <span class="key">"webhookUrl"</span>: <span class="str">"https://api.suaempresa.com.br/pix/webhook"</span> }
+
+<span class="comment">// Payload que você vai RECEBER (POST do PSP):</span>
+{
+  <span class="key">"pix"</span>: [
+    {
+      <span class="str">"endToEndId"</span>: <span class="str">"E1234567820251117143500abc123xyz"</span>,
+      <span class="str">"txid"</span>: <span class="str">"Hj2Kx9mNpQrTwXzAbCdEfGh"</span>,
+      <span class="str">"valor"</span>: <span class="str">"150.00"</span>,
+      <span class="str">"horario"</span>: <span class="str">"2025-11-17T14:35:00.000Z"</span>,
+      <span class="str">"pagador"</span>: {
+        <span class="str">"cpf"</span>: <span class="str">"12345678909"</span>,
+        <span class="str">"nome"</span>: <span class="str">"João Silva"</span>
+      }
+    }
+  ]
+}
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>Idempotência no webhook</strong>
+      O PSP pode re-enviar o mesmo evento. Sempre verifique se o <code>endToEndId</code> já foi processado antes de executar ações (liberar produto, acionar processo downstream). Armazene E2EIDs processados.
+    </div>
+  </div>
+
+  <!-- T7: Segurança -->
+  <h3>T7. Autenticação — OAuth 2.0, mTLS e certificados ICP-Brasil</h3>
+  <p>A API Pix exige dois mecanismos de segurança obrigatórios definidos no <strong>Manual ICP v2.6</strong>: <strong>mTLS</strong> (autenticação mútua TLS) e <strong>OAuth 2.0 com client_credentials</strong>.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Camada</th><th>Protocolo</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td>Transporte</td><td>mTLS (TLS 1.2+)</td><td>Certificado de cliente ICP-Brasil SPB ou e-CNPJ A3 apresentado em cada requisição</td></tr>
+        <tr><td>Aplicação</td><td>OAuth 2.0</td><td>Client credentials flow → Bearer token em <code>Authorization: Bearer {token}</code></td></tr>
+        <tr><td>Assinatura</td><td>JWS (opcional por PSP)</td><td>Alguns PSPs exigem payload assinado com chave privada ICP-Brasil</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block">
+<span class="comment">// Exemplo de obtenção de token (client_credentials):</span>
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+<span class="comment">// (com certificado mTLS no handshake TLS)</span>
+
+grant_type=client_credentials&amp;scope=cob.write+cob.read+webhook.write
+
+<span class="comment">// Response:</span>
+{
+  <span class="key">"access_token"</span>: <span class="str">"eyJhbGciOiJSUzI1NiJ9..."</span>,
+  <span class="key">"token_type"</span>: <span class="str">"Bearer"</span>,
+  <span class="key">"expires_in"</span>: <span class="val">3600</span>
+}
+
+<span class="comment">// Usando o token:</span>
+GET /cob/Hj2Kx9mNpQrTwXzAbCdEfGh
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+  </div>
+
+  <!-- T8: DICT -->
+  <h3>T8. Integração com o DICT — consultar e gerenciar chaves</h3>
+  <p>O <strong>DICT (Diretório de Identificadores de Contas Transacionais)</strong> é mantido pelo BCB. PSPs participantes integram via API REST para consultar chaves durante o fluxo de pagamento e para gerenciar as chaves dos seus correntistas.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/v2/dict/entries/{key}</code></td><td>Consultar titularidade de uma chave</td></tr>
+        <tr><td><code>POST /api/v2/dict/entries</code></td><td>Registrar nova chave para correntista</td></tr>
+        <tr><td><code>DELETE /api/v2/dict/entries/{key}</code></td><td>Excluir chave do correntista</td></tr>
+        <tr><td><code>POST /api/v2/dict/portabilityRequests</code></td><td>Solicitar portabilidade de chave</td></tr>
+        <tr><td><code>POST /api/v2/dict/claimRequests</code></td><td>Reivindicar chave de outro PSP</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block">
+<span class="comment">// Consulta de chave — resposta relevante para o pagador:</span>
+GET /api/v2/dict/entries/pagamentos@empresa.com.br
+
+{
+  <span class="key">"entry"</span>: {
+    <span class="str">"key"</span>: <span class="str">"pagamentos@empresa.com.br"</span>,
+    <span class="str">"keyType"</span>: <span class="str">"EMAIL"</span>,
+    <span class="str">"account"</span>: {
+      <span class="str">"participant"</span>: <span class="str">"12345678"</span>,      <span class="comment">// ISPB do PSP</span>
+      <span class="str">"branch"</span>: <span class="str">"0001"</span>,
+      <span class="str">"accountNumber"</span>: <span class="str">"00123456-7"</span>,
+      <span class="str">"accountType"</span>: <span class="str">"CACC"</span>             <span class="comment">// CACC=corrente, SVGS=poupança, SLRY=salário</span>
+    },
+    <span class="str">"owner"</span>: {
+      <span class="str">"type"</span>: <span class="str">"LEGAL_PERSON"</span>,
+      <span class="str">"taxIdNumber"</span>: <span class="str">"12345678000195"</span>,
+      <span class="str">"name"</span>: <span class="str">"Empresa Exemplo LTDA"</span>
+    }
+  }
+}
+  </div>
+
+  <!-- T9: Homologação -->
+  <h3>T9. Ambiente de homologação — sandbox BCB</h3>
+  <p>O BCB disponibiliza um <strong>ambiente de homologação</strong> para testar a integração antes de entrar em produção. O endereço base é diferente do produtivo e as credenciais são específicas do ambiente de testes.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ambiente</th><th>Base URL (API Pix)</th><th>Certificados</th></tr></thead>
+      <tbody>
+        <tr><td>Homologação</td><td><code>https://pix-h.api.bcb.gov.br</code></td><td>ICP-Brasil Homologação (AC específica)</td></tr>
+        <tr><td>Produção</td><td><code>https://pix.api.bcb.gov.br</code></td><td>ICP-Brasil Produção (AC-RAIZ V5)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>Simulando pagamentos em homologação</strong>
+      O BCB disponibiliza endpoints específicos para simular transações Pix no ambiente de testes. Consulte o <em>Manual ICP API Pix v2.6</em>, seção de ambientes, para detalhes sobre como acionar liquidações simuladas e testar webhooks sem realizar transações reais.
+    </div>
+  </div>
+
+  <!-- T10: Devoluções -->
+  <h3>T10. Devoluções via API e MED</h3>
+  <p>Existem dois mecanismos de devolução: a <strong>devolução simples</strong> via API (solicitada pelo recebedor ou pagador) e o <strong>MED</strong> (Mecanismo Especial de Devolução), acionado pelo BCB em casos de fraude ou falha operacional.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tipo</th><th>Endpoint</th><th>Prazo</th><th>Quem aciona</th></tr></thead>
+      <tbody>
+        <tr><td>Devolução simples</td><td><code>PUT /pix/{e2eId}/devolucao/{id}</code></td><td>Até 90 dias</td><td>PSP recebedor</td></tr>
+        <tr><td>MED — fraude</td><td>Solicitação ao BCB via SPI</td><td>Até 80 dias (fraude)</td><td>BCB / PSP pagador</td></tr>
+        <tr><td>MED — falha operacional</td><td>Solicitação ao BCB via SPI</td><td>Até 90 dias</td><td>BCB / PSP pagador</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block">
+<span class="comment">// PUT /pix/{e2eId}/devolucao/{id} — solicitar devolução:</span>
+{
+  <span class="key">"valor"</span>: <span class="str">"50.00"</span>,                   <span class="comment">// pode ser parcial</span>
+  <span class="key">"natureza"</span>: <span class="str">"ORIGINAL"</span>,             <span class="comment">// ORIGINAL | RETIRADA | MED</span>
+  <span class="key">"descricao"</span>: <span class="str">"Cancelamento pedido"</span>
+}
+
+<span class="comment">// Response: status SOLICITADA → DEVOLVIDA (após liquidação no SPI)</span>
+  </div>
+
+  <!-- T11: Checklist go-live -->
+  <h3>T11. Checklist go-live</h3>
+  <p>Antes de ativar em produção, verifique todos os itens abaixo. Itens marcados com ⚠️ bloqueiam a homologação pelo BCB.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Item</th><th>Critério</th></tr></thead>
+      <tbody>
+        <tr><td>⚠️ Certificado ICP-Brasil produção</td><td>Certificado SPB (e-CNPJ A3 ou equivalente) emitido por AC credenciada pelo BCB</td></tr>
+        <tr><td>⚠️ mTLS configurado</td><td>Servidor aceita e valida certificado de cliente em todas as chamadas à API Pix</td></tr>
+        <tr><td>⚠️ OAuth 2.0 implementado</td><td>Geração de token, refresh automático antes de expirar, escopos mínimos necessários</td></tr>
+        <tr><td>⚠️ Webhook com TLS válido</td><td>Endpoint HTTPS acessível publicamente, certificado emitido por CA reconhecida</td></tr>
+        <tr><td>Idempotência</td><td>Re-envios do mesmo E2EID não geram processamento duplicado</td></tr>
+        <tr><td>CRC16 validado</td><td>Payload QR gerado/validado com CRC-16/CCITT-FALSE correto</td></tr>
+        <tr><td>Timeouts e retry</td><td>Retry com backoff exponencial; timeout máximo de 30s nas chamadas ao SPI</td></tr>
+        <tr><td>Logs de auditoria</td><td>E2EID, txid, valor, horário e status armazenados por no mínimo 5 anos (Res. BCB 1/2020)</td></tr>
+        <tr><td>Testes de carga</td><td>SLA mínimo de 99,5% de disponibilidade e resposta em até 10s (Art. 10, Res. BCB 85/2021)</td></tr>
+        <tr><td>Homologação BCB aprovada</td><td>Todos os casos de teste do ADOPTNEWMCA executados com sucesso no ambiente de homologação</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- T12: Erros e SLA -->
+  <h3>T12. Tratamento de erros e SLA</h3>
+  <p>A API Pix usa códigos HTTP padrão mais um campo <code>type</code> (URI) para categorizar erros. O SLA de disponibilidade e tempo de resposta é regulado pela <strong>Res. BCB 85/2021</strong>.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>HTTP</th><th>type</th><th>Significado</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td><code>https://pix.bcb.gov.br/api/v2/error/CobOperacaoInvalida</code></td><td>Parâmetros inválidos na cobrança</td></tr>
+        <tr><td>401</td><td><code>.../NaoAutorizado</code></td><td>Token expirado ou escopo insuficiente</td></tr>
+        <tr><td>403</td><td><code>.../AcessoNegado</code></td><td>Chave não pertence ao PSP</td></tr>
+        <tr><td>404</td><td><code>.../CobNaoEncontrada</code></td><td>txid não existe</td></tr>
+        <tr><td>503</td><td><code>.../ServicoIndisponivel</code></td><td>SPI em janela de manutenção ou sobrecarga</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <div class="callout-icon">📋</div>
+    <div class="callout-body">
+      <strong>SLA regulatório (Res. BCB 85/2021, Art. 6)</strong>
+      Disponibilidade mínima de <strong>99,5%</strong> medida mensalmente. Tempo máximo de resposta para liquidação: <strong>10 segundos</strong> em condições normais. Janelas de manutenção programada devem ser comunicadas ao BCB com antecedência mínima de 72h.
+    </div>
+  </div>
+
+  <div class="section-refs">
+    <div class="section-refs-title">📚 Referências técnicas</div>
+    <ul>
+      <li><span class="ref-doc">Manual Operacional do SPI</span><span class="ref-ver">v7.x</span><span class="ref-art">Infraestrutura LBTR, mensagens pacs.008/004/002, janelas de operação</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/V_ManualOperacionaldoSPI.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Catálogo de Serviços do SFN</span><span class="ref-ver">v5.12</span><span class="ref-art">Requisitos de participação no SPI: conectividade RSFN, ADOPTNEWMCA</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/CatalogoServicos_SFN.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Manual ICP — API Pix</span><span class="ref-ver">v2.6</span><span class="ref-art">Integração server/client: OAuth 2.0, mTLS, webhooks, PayloadLocation, idempotência</span> — <a href="https://bacen.github.io/pix-api/" target="_blank">bacen.github.io/pix-api</a></li>
+      <li><span class="ref-doc">Manual DICT</span><span class="ref-ver">v8.2</span><span class="ref-art">Consulta, registro, portabilidade e reivindicação de chaves Pix</span> — <a href="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IV_ManualdoDICT.pdf" target="_blank">PDF BCB</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 85/2021</span><span class="ref-ver">atualizada Res. 538/2025</span><span class="ref-art">MFA, segurança operacional, controles de acesso ao ambiente SPI, SLA de disponibilidade</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+      <li><span class="ref-doc">Resolução BCB nº 403/2024</span><span class="ref-ver">vigente</span><span class="ref-art">Requisitos de dispositivos e ambientes homologados para participantes</span> — <a href="https://www.bcb.gov.br/estabilidadefinanceira/pix-normas" target="_blank">Portal de Normas Pix</a></li>
+    </ul>
+  </div>
+
+</section>
+</div><!-- /.container -->
+</div><!-- /.page-wrap -->
+
+<div class="footer">
+  <strong>Pix QR Code — Aula Magna</strong><br>
+  Material didático baseado nas normas do Banco Central do Brasil.<br>
+  <span style="font-size:0.8rem;opacity:0.7">Res. BCB 1/2020 · Manual de Padrões v2.9.0 · Manual ICP API Pix v2.6 · Manual DICT v8.2</span>
+</div>
+
+<button class="gloss-btn" id="glossBtn" aria-label="Glossário de siglas" title="Glossário de siglas">ABC</button>
+<div class="gloss-panel" id="glossPanel">
+  <div class="gloss-panel-title">📖 Glossário de siglas</div>
+  <div class="gloss-list">
+    <div class="gloss-item"><span class="gloss-term">API</span><br><span class="gloss-def">Application Programming Interface — interface de integração entre sistemas</span></div>
+    <div class="gloss-item"><span class="gloss-term">BCB</span><br><span class="gloss-def">Banco Central do Brasil — regulador e operador do SPI</span></div>
+    <div class="gloss-item"><span class="gloss-term">BR Code</span><br><span class="gloss-def">Brazilian QR Code — padrão nacional de QR Code baseado no EMV</span></div>
+    <div class="gloss-item"><span class="gloss-term">CACC</span><br><span class="gloss-def">Current Account (ISO 20022) — conta corrente</span></div>
+    <div class="gloss-item"><span class="gloss-term">Cob</span><br><span class="gloss-def">Cobrança imediata — recurso da API Pix para QR Dinâmico sem vencimento</span></div>
+    <div class="gloss-item"><span class="gloss-term">CobV</span><br><span class="gloss-def">Cobrança com Vencimento — Cob com data de vencimento, juros e multa</span></div>
+    <div class="gloss-item"><span class="gloss-term">CPF</span><br><span class="gloss-def">Cadastro de Pessoas Físicas — documento de identificação individual</span></div>
+    <div class="gloss-item"><span class="gloss-term">CRC</span><br><span class="gloss-def">Cyclic Redundancy Check — checksum para validação de integridade do payload QR</span></div>
+    <div class="gloss-item"><span class="gloss-term">CNPJ</span><br><span class="gloss-def">Cadastro Nacional de Pessoas Jurídicas — identificador de empresas</span></div>
+    <div class="gloss-item"><span class="gloss-term">DICT</span><br><span class="gloss-def">Diretório de Identificadores de Contas Transacionais — banco de chaves Pix do BCB</span></div>
+    <div class="gloss-item"><span class="gloss-term">E2EID</span><br><span class="gloss-def">End-to-End ID — identificador único de 32 chars que acompanha toda transação Pix no SPI</span></div>
+    <div class="gloss-item"><span class="gloss-term">EMV</span><br><span class="gloss-def">Europay, Mastercard, Visa — consórcio que define o padrão QR Code base do BR Code</span></div>
+    <div class="gloss-item"><span class="gloss-term">ICP</span><br><span class="gloss-def">Infraestrutura de Chaves Públicas — PKI brasileira para certificados digitais</span></div>
+    <div class="gloss-item"><span class="gloss-term">ISPB</span><br><span class="gloss-def">Identificador do Sistema de Pagamentos Brasileiro — código de 8 dígitos do participante</span></div>
+    <div class="gloss-item"><span class="gloss-term">ISO 20022</span><br><span class="gloss-def">Padrão internacional de mensagens financeiras usado nas mensagens pacs do SPI</span></div>
+    <div class="gloss-item"><span class="gloss-term">JWS</span><br><span class="gloss-def">JSON Web Signature — assinatura digital de payloads JSON com chave ICP-Brasil</span></div>
+    <div class="gloss-item"><span class="gloss-term">LBTR</span><br><span class="gloss-def">Liquidação Bruta em Tempo Real — modelo onde cada transação é liquidada individualmente</span></div>
+    <div class="gloss-item"><span class="gloss-term">MCC</span><br><span class="gloss-def">Merchant Category Code — código de 4 dígitos da categoria do estabelecimento (campo 52 do QR)</span></div>
+    <div class="gloss-item"><span class="gloss-term">MED</span><br><span class="gloss-def">Mecanismo Especial de Devolução — processo regulado para estorno em casos de fraude</span></div>
+    <div class="gloss-item"><span class="gloss-term">mTLS</span><br><span class="gloss-def">Mutual TLS — autenticação mútua por certificado, obrigatória na API Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">OAuth 2.0</span><br><span class="gloss-def">Open Authorization — protocolo de autenticação usado para obter tokens de acesso à API Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">pacs</span><br><span class="gloss-def">Payments Clearing and Settlement — família de mensagens ISO 20022 do SPI</span></div>
+    <div class="gloss-item"><span class="gloss-term">PSI</span><br><span class="gloss-def">Provedor de Serviço de Iniciação — instituição que inicia transações Pix em nome do pagador</span></div>
+    <div class="gloss-item"><span class="gloss-term">PSP</span><br><span class="gloss-def">Provedor de Serviço de Pagamento — banco ou instituição de pagamento participante do Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">QR Code</span><br><span class="gloss-def">Quick Response Code — código de barras 2D que carrega o payload BR Code do Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">REST</span><br><span class="gloss-def">Representational State Transfer — estilo arquitetural das APIs HTTP do ecossistema Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">RSFN</span><br><span class="gloss-def">Rede do Sistema Financeiro Nacional — rede privada de comunicação entre participantes do SPI</span></div>
+    <div class="gloss-item"><span class="gloss-term">SFN</span><br><span class="gloss-def">Sistema Financeiro Nacional — conjunto de instituições e normas do mercado financeiro</span></div>
+    <div class="gloss-item"><span class="gloss-term">SPI</span><br><span class="gloss-def">Sistema de Pagamentos Instantâneos — infraestrutura LBTR do BCB que liquida transações Pix</span></div>
+    <div class="gloss-item"><span class="gloss-term">STR</span><br><span class="gloss-def">Sistema de Transferência de Reservas — liquidação interbancária de alto valor do BCB</span></div>
+    <div class="gloss-item"><span class="gloss-term">TLV</span><br><span class="gloss-def">Tag-Length-Value — codificação do payload BR Code: ID (2) + Tamanho (2) + Valor</span></div>
+    <div class="gloss-item"><span class="gloss-term">txid</span><br><span class="gloss-def">Transaction ID — identificador único da cobrança, até 35 chars alfanuméricos</span></div>
+  </div>
+</div>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+  <span></span><span></span><span></span>
+</button>
+
+<script>
+(function () {
+  const btn   = document.getElementById('glossBtn');
+  const panel = document.getElementById('glossPanel');
+  if (!btn || !panel) return;
+
+  let leaveTimer;
+  btn.addEventListener('mouseenter', () => {
+    clearTimeout(leaveTimer);
+    panel.classList.add('visible');
+  });
+  btn.addEventListener('mouseleave', () => {
+    leaveTimer = setTimeout(() => {
+      if (!panel.matches(':hover')) panel.classList.remove('visible');
+    }, 180);
+  });
+  panel.addEventListener('mouseenter', () => clearTimeout(leaveTimer));
+  panel.addEventListener('mouseleave', () => { panel.classList.remove('visible'); });
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.toggle('visible');
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('visible');
+  });
+})();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'neutral',
+  sequence: { actorMargin: 40, width: 140, noteMargin: 8, messageMargin: 30, mirrorActors: false }
+});
+</script>
+
+<script>
+(function () {
+  const sections = document.querySelectorAll('.section');
+  const navEl    = document.getElementById('sidebarNav');
+  let html = '';
+
+  sections.forEach(sec => {
+    const sid    = sec.id;
+    const isTech = sid === 's13';
+    const h2     = sec.querySelector('.section-title, h2');
+    const numEl  = sec.querySelector('.section-num');
+    const h3s    = sec.querySelectorAll('h3');
+
+    if (isTech) html += '<hr class="sb-sep">';
+
+    if (isTech) {
+      const label = h2 ? h2.textContent.trim() : '⚙ Técnico Dev';
+      html += `<a class="sb-dev-link" href="#${sid}" data-id="${sid}">⚙ ${label.replace(/^⚙\s*/,'')}</a>`;
+    } else {
+      const num   = numEl ? numEl.textContent.trim() : '';
+      const title = h2   ? h2.textContent.trim()    : '';
+      html += `<a class="sb-s-link" href="#${sid}" data-id="${sid}"><span class="sb-s-num">${num}</span>${title}</a>`;
+    }
+
+    h3s.forEach((h3, i) => {
+      if (!h3.id) h3.id = `${sid}-h3-${i}`;
+      const label = h3.textContent.trim().replace(/^T\d+\.\s*/, '');
+      if (label.length > 1) {
+        html += `<a class="sb-h3-link" href="#${h3.id}" data-id="${h3.id}">${label}</a>`;
+      }
+    });
+  });
+
+  navEl.innerHTML = html;
+
+  navEl.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('visible');
+    });
+  });
+
+  const targets = [];
+  sections.forEach(sec => {
+    targets.push({ id: sec.id, el: sec });
+    sec.querySelectorAll('h3[id]').forEach(h3 => targets.push({ id: h3.id, el: h3 }));
+  });
+
+  function setActive(id) {
+    navEl.querySelectorAll('a').forEach(a => a.classList.toggle('active', a.dataset.id === id));
+  }
+
+  const visible = new Set();
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) visible.add(e.target.id);
+      else visible.delete(e.target.id);
+    });
+    for (const t of targets) {
+      if (visible.has(t.id)) { setActive(t.id); return; }
+    }
+  }, { rootMargin: '-8% 0px -70% 0px', threshold: 0 });
+
+  targets.forEach(t => obs.observe(t.el));
+
+  const toggle  = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  toggle.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+  });
+})();
+</script>
+
+</body>
+</html>

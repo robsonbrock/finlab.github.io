@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — Pix por QR Code</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='translate(16,16) rotate(45)'%3E%3Crect x='-4.5' y='-13.5' width='9' height='9' rx='2.5' fill='%235677DA'/%3E%3Crect x='-4.5' y='4.5' width='9' height='9' rx='2.5' fill='%235677DA'/%3E%3Crect x='-13.5' y='-4.5' width='9' height='9' rx='2.5' fill='%235677DA'/%3E%3Crect x='4.5' y='-4.5' width='9' height='9' rx='2.5' fill='%235677DA'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #1a1d27;
+    --surface2: #22263a;
+    --border:   #2e3250;
+    --accent:   #5677da;
+    --accent2:  #7a96e8;
+    --correct:  #22c55e;
+    --wrong:    #ef4444;
+    --text:     #e8eaf6;
+    --muted:    #8892b0;
+    --pix:      #00b383;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .hero {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 40%, #141828 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 40px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(86,119,218,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(86,119,218,0.15);
+    border: 1px solid rgba(86,119,218,0.35);
+    color: var(--accent2);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p { color: var(--muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .progress-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .progress-label { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+
+  /* ── MAIN CONTAINER ── */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── QUESTION CARD ── */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .question-card:has(.option-input:checked) {
+    border-color: rgba(86,119,218,0.4);
+  }
+  .question-card.answered-correct { border-color: var(--correct); }
+  .question-card.answered-wrong   { border-color: var(--wrong); }
+
+  .question-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .question-num {
+    background: rgba(86,119,218,0.2);
+    color: var(--accent2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .question-num.q-correct { background: rgba(34,197,94,0.15); color: var(--correct); }
+  .question-num.q-wrong   { background: rgba(239,68,68,0.15);  color: var(--wrong); }
+
+  .question-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 8px; }
+
+  .option-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    background: var(--surface2);
+  }
+  .option-label:hover { border-color: var(--accent); background: rgba(86,119,218,0.08); }
+
+  .option-input { display: none; }
+  .option-input:checked + .option-letter {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .option-input:checked ~ .option-text { color: #fff; }
+  .option-label:has(.option-input:checked) {
+    border-color: var(--accent);
+    background: rgba(86,119,218,0.12);
+  }
+
+  .option-letter {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all 0.15s;
+    margin-top: 1px;
+  }
+  .option-text { font-size: 0.9rem; color: var(--muted); line-height: 1.5; transition: color 0.15s; }
+
+  /* ── AFTER SUBMIT STATES ── */
+  .revealed .option-label { cursor: default; pointer-events: none; }
+
+  .revealed .option-label.is-correct {
+    border-color: var(--correct);
+    background: rgba(34,197,94,0.1);
+  }
+  .revealed .option-label.is-correct .option-letter {
+    background: var(--correct);
+    color: #fff;
+    border-color: var(--correct);
+  }
+  .revealed .option-label.is-correct .option-text { color: var(--text); }
+
+  .revealed .option-label.is-wrong-pick {
+    border-color: var(--wrong);
+    background: rgba(239,68,68,0.08);
+  }
+  .revealed .option-label.is-wrong-pick .option-letter {
+    background: var(--wrong);
+    color: #fff;
+    border-color: var(--wrong);
+  }
+  .revealed .option-label.is-wrong-pick .option-text { color: #fca5a5; }
+
+  .explanation {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: rgba(86,119,218,0.08);
+    border-left: 3px solid var(--accent);
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .revealed .explanation { display: block; }
+
+  /* ── SUBMIT AREA ── */
+  .submit-area {
+    text-align: center;
+    padding: 40px 0 20px;
+  }
+  .btn-submit {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #fff;
+    border: none;
+    padding: 16px 64px;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn-submit:hover  { opacity: 0.9; transform: translateY(-1px); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .unanswered-hint {
+    margin-top: 12px;
+    color: var(--wrong);
+    font-size: 0.85rem;
+    display: none;
+  }
+
+  /* ── SCORE CARD ── */
+  .score-card {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .score-card.visible { display: block; }
+  .score-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 400px; height: 200px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .score-card.grade-a::before { background: radial-gradient(ellipse, rgba(34,197,94,0.15), transparent); }
+  .score-card.grade-b::before { background: radial-gradient(ellipse, rgba(86,119,218,0.15), transparent); }
+  .score-card.grade-c::before { background: radial-gradient(ellipse, rgba(234,179,8,0.15), transparent); }
+  .score-card.grade-d::before { background: radial-gradient(ellipse, rgba(239,68,68,0.15), transparent); }
+
+  .score-big {
+    font-size: 5rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .grade-a .score-big { color: var(--correct); }
+  .grade-b .score-big { color: var(--accent2); }
+  .grade-c .score-big { color: #eab308; }
+  .grade-d .score-big { color: var(--wrong); }
+
+  .score-fraction { font-size: 1.1rem; color: var(--muted); margin-bottom: 8px; }
+  .score-label    { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+  .score-msg      { color: var(--muted); font-size: 0.9rem; }
+
+  .score-breakdown {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .breakdown-item { text-align: center; }
+  .breakdown-num  { font-size: 1.6rem; font-weight: 800; }
+  .breakdown-num.c { color: var(--correct); }
+  .breakdown-num.w { color: var(--wrong); }
+  .breakdown-num.s { color: var(--muted); }
+  .breakdown-lbl  { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  /* ── RESULTS TABLE ── */
+  #resultsSection {
+    display: none;
+    margin-top: 12px;
+    margin-bottom: 48px;
+  }
+  #resultsSection.visible { display: block; }
+
+  .results-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .results-title span { color: var(--muted); font-size: 0.85rem; font-weight: 400; }
+
+  .result-item {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .result-item.r-correct { border-color: rgba(34,197,94,0.3); }
+  .result-item.r-wrong   { border-color: rgba(239,68,68,0.35); }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+  }
+  .r-correct .result-header { background: rgba(34,197,94,0.07); }
+  .r-wrong   .result-header { background: rgba(239,68,68,0.07); }
+
+  .result-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 900;
+    flex-shrink: 0;
+  }
+  .r-correct .result-icon { background: var(--correct); color: #fff; }
+  .r-wrong   .result-icon { background: var(--wrong);   color: #fff; }
+
+  .result-qnum   { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); }
+  .result-status { font-size: 0.75rem; font-weight: 700; margin-left: auto; }
+  .r-correct .result-status { color: var(--correct); }
+  .r-wrong   .result-status { color: var(--wrong); }
+
+  .result-body { padding: 14px 18px 16px; }
+
+  .result-question {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .result-choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+
+  .result-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.83rem;
+    line-height: 1.45;
+  }
+  .result-choice .ch-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .choice-correct .ch-label { background: rgba(34,197,94,0.15); color: var(--correct); }
+  .choice-wrong   .ch-label { background: rgba(239,68,68,0.12);  color: var(--wrong); }
+  .choice-correct .ch-text { color: var(--text); }
+  .choice-wrong   .ch-text  { color: #fca5a5; text-decoration: line-through; opacity: 0.7; }
+
+  .result-note {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(34,197,94,0.06);
+    border-left: 3px solid var(--correct);
+  }
+
+  .result-lesson {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.7;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: rgba(86,119,218,0.06);
+    border-left: 3px solid var(--accent);
+  }
+  .result-lesson strong { color: var(--accent2); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .hero { padding: 36px 20px 28px; }
+    .hero h1 { font-size: 1.5rem; }
+    .question-card { padding: 20px 18px; }
+    .progress-bar-wrap { padding: 10px 20px; }
+    .score-big { font-size: 3.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Quiz</div>
+  <h1>Pix por QR Code</h1>
+  <p>20 perguntas sobre BR Code, API Pix, SPI, DICT e muito mais. Responda todas e clique em <strong>Enviar</strong>.</p>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-bar-wrap">
+  <div class="progress-inner">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 20 respondidas</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- RESULTS TABLE (hidden until submit) -->
+  <div id="resultsSection"></div>
+
+  <!-- SCORE CARD (hidden until submit) -->
+  <div class="score-card" id="scoreCard">
+    <div class="score-big" id="scorePct"></div>
+    <div class="score-fraction" id="scoreFraction"></div>
+    <div class="score-label" id="scoreLabel"></div>
+    <div class="score-msg"   id="scoreMsg"></div>
+    <div class="score-breakdown">
+      <div class="breakdown-item"><div class="breakdown-num c" id="bdCorrect">—</div><div class="breakdown-lbl">Corretas</div></div>
+      <div class="breakdown-item"><div class="breakdown-num w" id="bdWrong">—</div>  <div class="breakdown-lbl">Erradas</div></div>
+      <div class="breakdown-item"><div class="breakdown-num s" id="bdSkipped">—</div><div class="breakdown-lbl">Em branco</div></div>
+    </div>
+  </div>
+
+  <form id="quizForm">
+
+    <!-- Q1 -->
+    <div class="question-card" data-q="1">
+      <div class="question-meta"><span class="question-num" id="qn1">Questão 01</span></div>
+      <div class="question-text">O BR Code é o padrão brasileiro de QR Code para o Pix. Qual norma internacional ele adapta?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q1" value="A"><span class="option-letter">A</span><span class="option-text">ISO 20022 — padrão de mensagens financeiras XML do BIS</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q1" value="B"><span class="option-letter">B</span><span class="option-text">EMV-QRCPS — Europay, Mastercard, Visa QR Code Payment Specification</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q1" value="C"><span class="option-letter">C</span><span class="option-text">PCI-DSS — Payment Card Industry Data Security Standard</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q1" value="D"><span class="option-letter">D</span><span class="option-text">RFC 7519 — JSON Web Token (JWT) specification</span></label>
+      </div>
+      <div class="explanation">O BR Code é a adaptação brasileira do <strong>EMV-QRCPS</strong> (Europay, Mastercard, Visa QR Code Payment Specification). No Brasil, seu único uso é o Pix.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question-card" data-q="2">
+      <div class="question-meta"><span class="question-num" id="qn2">Questão 02</span></div>
+      <div class="question-text">No formato TLV do BR Code, o que representa o "L" (Length) de um campo?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q2" value="A"><span class="option-letter">A</span><span class="option-text">O tipo de dado armazenado no campo (texto, número, etc.)</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q2" value="B"><span class="option-letter">B</span><span class="option-text">O comprimento exato do valor, em decimal zero-padded (ex: "04" para 4 chars)</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q2" value="C"><span class="option-letter">C</span><span class="option-text">O tamanho máximo permitido para aquele campo pela spec EMV</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q2" value="D"><span class="option-letter">D</span><span class="option-text">O nível hierárquico do campo dentro do payload</span></label>
+      </div>
+      <div class="explanation">O "L" é o comprimento real do valor, em decimal com zero-padding (sempre 2 chars). É o tamanho exato — sem padding no valor. Campo opcional vazio é omitido por inteiro.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="question-card" data-q="3">
+      <div class="question-meta"><span class="question-num" id="qn3">Questão 03</span></div>
+      <div class="question-text">Qual é o valor exato da GUI (Globally Unique Identifier) que identifica o Pix no BR Code?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q3" value="A"><span class="option-letter">A</span><span class="option-text">pix.gov.bcb.br</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q3" value="B"><span class="option-letter">B</span><span class="option-text">bcb.gov.br.pix</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q3" value="C"><span class="option-letter">C</span><span class="option-text">br.gov.bcb.pix</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q3" value="D"><span class="option-letter">D</span><span class="option-text">gov.br.bcb.pix</span></label>
+      </div>
+      <div class="explanation">O valor correto é <strong>br.gov.bcb.pix</strong> — é o identificador único que diferencia um QR Code Pix de outros tipos de QR Code de pagamento. Vai no subcampo ID=00 da faixa 26.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="question-card" data-q="4">
+      <div class="question-meta"><span class="question-num" id="qn4">Questão 04</span></div>
+      <div class="question-text">Qual é a principal diferença técnica entre um QR Code Pix estático e um dinâmico?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q4" value="A"><span class="option-letter">A</span><span class="option-text">No estático, o campo 63 (CRC16) é opcional; no dinâmico, é obrigatório</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q4" value="B"><span class="option-letter">B</span><span class="option-text">No dinâmico, o campo 26 contém uma URL (sem https://) que serve um JSON com os dados da cobrança</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q4" value="C"><span class="option-letter">C</span><span class="option-text">O estático usa criptografia assimétrica; o dinâmico usa simétrica</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q4" value="D"><span class="option-letter">D</span><span class="option-text">O dinâmico não tem campo de chave Pix; usa apenas o E2EID</span></label>
+      </div>
+      <div class="explanation">No dinâmico, o campo 25 da faixa 26 contém uma URL <strong>sem o prefixo https://</strong> (o app pagador adiciona). Essa URL retorna um JSON (payload Cob ou CobV) com valor, devedor, txid etc. Os dados de negócio não ficam no QR.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="question-card" data-q="5">
+      <div class="question-meta"><span class="question-num" id="qn5">Questão 05</span></div>
+      <div class="question-text">Um e-commerce quer que cada pedido gere um QR Code único, que expire em 30 minutos e impeça pagamento duplicado. Qual tipo de QR Code Pix atende esses requisitos e por quê?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q5" value="A"><span class="option-letter">A</span><span class="option-text">QR Estático, pois é mais simples de gerar e não requer backend</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q5" value="B"><span class="option-letter">B</span><span class="option-text">QR Dinâmico (Cob), pois permite valor único, expiração configurável e controle de status por transação</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q5" value="C"><span class="option-letter">C</span><span class="option-text">Pix Copia e Cola a partir do QR Estático, adicionando txid manual a cada pedido</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q5" value="D"><span class="option-letter">D</span><span class="option-text">QR Estático com txid de 25 chars preenchido com o número do pedido</span></label>
+      </div>
+      <div class="explanation">O <strong>QR Dinâmico (Cob)</strong> foi criado exatamente para esse caso: valor único por transação, campo <code>expiracao</code> em segundos e status <strong>CONCLUIDA</strong> que bloqueia novos pagamentos após o primeiro. O QR Estático não tem como expirar nem impedir pagamentos múltiplos.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="question-card" data-q="6">
+      <div class="question-meta"><span class="question-num" id="qn6">Questão 06</span></div>
+      <div class="question-text">Uma empresa quer que ao receber um Pix, o sistema ERP identifique automaticamente a qual pedido aquele pagamento pertence — sem intervenção humana. Qual recurso do Pix viabiliza essa conciliação automática?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q6" value="A"><span class="option-letter">A</span><span class="option-text">O campo 'chave' do BR Code, que identifica unicamente o recebedor no DICT</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q6" value="B"><span class="option-letter">B</span><span class="option-text">O txid (Transaction ID) — único por cobrança, retornado no webhook e no payload JSON da URL dinâmica</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q6" value="C"><span class="option-letter">C</span><span class="option-text">O E2EID gerado pelo banco pagador — imprevisível pelo recebedor</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q6" value="D"><span class="option-letter">D</span><span class="option-text">O campo 'solicitacaoPagador', que o cliente preenche manualmente no app do banco</span></label>
+      </div>
+      <div class="explanation">O <strong>txid</strong> é o elo entre o QR Code e o pedido: o recebedor o gera ao criar a cobrança (ou delega ao PSP), e quando o Pix chega o webhook o traz de volta. Com txid → pedido mapeado, a conciliação é automática e sem ambiguidade.</div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="question-card" data-q="7">
+      <div class="question-meta"><span class="question-num" id="qn7">Questão 07</span></div>
+      <div class="question-text">O que é o DICT no ecossistema Pix?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q7" value="A"><span class="option-letter">A</span><span class="option-text">O sistema de liquidação bruta em tempo real operado pelo Banco Central</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q7" value="B"><span class="option-letter">B</span><span class="option-text">A rede dedicada que transporta mensagens ISO 20022 entre instituições</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q7" value="C"><span class="option-letter">C</span><span class="option-text">O diretório central que mapeia chaves Pix para contas bancárias</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q7" value="D"><span class="option-letter">D</span><span class="option-text">O protocolo de autenticação mútua entre PSPs participantes</span></label>
+      </div>
+      <div class="explanation"><strong>DICT</strong> = Diretório de Identificadores de Contas Transacionais. Quando o app pagador lê um QR Code, consulta o DICT para mapear a chave → banco + agência + conta. É a fonte de verdade do sistema.</div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="question-card" data-q="8">
+      <div class="question-meta"><span class="question-num" id="qn8">Questão 08</span></div>
+      <div class="question-text">Qual é a principal utilidade prática do E2EID (End-to-End ID) do ponto de vista de produto e operações?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q8" value="A"><span class="option-letter">A</span><span class="option-text">Autenticar o PSP pagador no DICT antes de consultar dados da chave Pix</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q8" value="B"><span class="option-letter">B</span><span class="option-text">Identificar a conta destino no SPI quando a chave Pix não está registrada no DICT</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q8" value="C"><span class="option-letter">C</span><span class="option-text">Rastrear e identificar unicamente cada transação Pix, permitindo solicitar devoluções e auditar pagamentos</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q8" value="D"><span class="option-letter">D</span><span class="option-text">Substituir o txid quando o recebedor não possui sistema próprio de geração de cobranças</span></label>
+      </div>
+      <div class="explanation">O <strong>E2EID</strong> é o identificador global e único de cada transação Pix, gerado pelo banco emissor. Com ele, qualquer PSP consegue localizar o pagamento exato no SPI, solicitar uma devolução (MED ou operacional) ou responder a auditorias do Banco Central. É o "número de protocolo" do Pix.</div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="question-card" data-q="9">
+      <div class="question-meta"><span class="question-num" id="qn9">Questão 09</span></div>
+      <div class="question-text">Na fórmula do valor final da CobV — Vf = Vo − Va − Vd + Vj + Vm — o que representa cada variável? Qual alternativa está CORRETA?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q9" value="A"><span class="option-letter">A</span><span class="option-text">Va = Juros por atraso; Vd = Multa; Vj = Desconto; Vm = Abatimento</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q9" value="B"><span class="option-letter">B</span><span class="option-text">Va = Abatimento (sempre aplicado); Vd = Desconto (até vencimento); Vj = Juros por atraso; Vm = Multa</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q9" value="C"><span class="option-letter">C</span><span class="option-text">Va = Valor de aprovação; Vd = Valor de débito; Vj = Valor de juros; Vm = Valor máximo</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q9" value="D"><span class="option-letter">D</span><span class="option-text">Va = Acréscimo; Vd = Dedução; Vj = Ajuste judicial; Vm = Variação monetária</span></label>
+      </div>
+      <div class="explanation"><strong>Va</strong> = Abatimento (diminui sempre se configurado), <strong>Vd</strong> = Desconto (só antes/no vencimento), <strong>Vj</strong> = Juros (acresce após vencimento), <strong>Vm</strong> = Multa (aplicada uma vez após vencimento).</div>
+    </div>
+
+    <!-- Q10 -->
+    <div class="question-card" data-q="10">
+      <div class="question-meta"><span class="question-num" id="qn10">Questão 10</span></div>
+      <div class="question-text">Quais são os dois mecanismos de autenticação obrigatórios para o cliente usar a API Pix?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q10" value="A"><span class="option-letter">A</span><span class="option-text">API Key estática + HTTPS com TLS 1.2 mínimo</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q10" value="B"><span class="option-letter">B</span><span class="option-text">JWT assinado + certificado SSL emitido por qualquer CA pública</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q10" value="C"><span class="option-letter">C</span><span class="option-text">OAuth 2.0 (client_credentials) + mTLS com certificado ICP-Brasil</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q10" value="D"><span class="option-letter">D</span><span class="option-text">SAML 2.0 + VPN dedicada à RSFN</span></label>
+      </div>
+      <div class="explanation"><strong>OAuth 2.0</strong> (fluxo client_credentials) para o token de acesso + <strong>mTLS</strong> (mutual TLS) com certificado ICP-Brasil na camada de transporte. Ambos são obrigatórios simultaneamente em toda chamada.</div>
+    </div>
+
+    <!-- Q11 -->
+    <div class="question-card" data-q="11">
+      <div class="question-meta"><span class="question-num" id="qn11">Questão 11</span></div>
+      <div class="question-text">Um campo opcional do BR Code não tem valor a informar. O que deve ser feito?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q11" value="A"><span class="option-letter">A</span><span class="option-text">O campo é incluído com comprimento "00" e valor vazio</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q11" value="B"><span class="option-letter">B</span><span class="option-text">O campo é preenchido com espaços até atingir o tamanho máximo definido pela spec</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q11" value="C"><span class="option-letter">C</span><span class="option-text">O campo inteiro é omitido do payload</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q11" value="D"><span class="option-letter">D</span><span class="option-text">O campo recebe o valor "NULL" com comprimento "04"</span></label>
+      </div>
+      <div class="explanation">No TLV do BR Code, campo opcional vazio = <strong>campo inteiro omitido</strong>. Não existe "comprimento zero" ou padding. Isso mantém o payload compacto e o QR Code com menos módulos.</div>
+    </div>
+
+    <!-- Q12 -->
+    <div class="question-card" data-q="12">
+      <div class="question-meta"><span class="question-num" id="qn12">Questão 12</span></div>
+      <div class="question-text">Qual é a principal garantia operacional do SPI (Sistema de Pagamentos Instantâneos) que o torna adequado para cobranças por QR Code em qualquer horário do dia?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q12" value="A"><span class="option-letter">A</span><span class="option-text">Funciona apenas em dias úteis, com janela de manutenção de 00h às 6h nos fins de semana</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q12" value="B"><span class="option-letter">B</span><span class="option-text">Liquida pagamentos em lotes a cada 30 minutos, garantindo processamento ordenado e rastreável</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q12" value="C"><span class="option-letter">C</span><span class="option-text">Opera 24 horas por dia, 7 dias por semana, 365 dias por ano, com liquidação em segundos</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q12" value="D"><span class="option-letter">D</span><span class="option-text">Garante liquidação apenas para contas no mesmo PSP; interbancários seguem o fluxo STR</span></label>
+      </div>
+      <div class="explanation">O <strong>SPI</strong> opera ininterruptamente — 24h, 7 dias, 365 dias, sem janelas de manutenção. Isso é o que permite o Pix funcionar numa compra de madrugada de sábado ou num feriado nacional. A liquidação é individual (LBTR), em segundos, diferente do TED (lotes, dias úteis).</div>
+    </div>
+
+    <!-- Q13 -->
+    <div class="question-card" data-q="13">
+      <div class="question-meta"><span class="question-num" id="qn13">Questão 13</span></div>
+      <div class="question-text">O PSP pode reenviar a mesma notificação de webhook para o servidor do recebedor. Qual regra de negócio o sistema deve implementar para evitar processar o mesmo pagamento duas vezes?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q13" value="A"><span class="option-letter">A</span><span class="option-text">Aceitar todos os webhooks e sobrescrever o status do pedido na última notificação recebida</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q13" value="B"><span class="option-letter">B</span><span class="option-text">Rejeitar qualquer webhook duplicado retornando HTTP 409 Conflict imediatamente</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q13" value="C"><span class="option-letter">C</span><span class="option-text">Verificar se o endToEndId (E2EID) da notificação já foi processado antes de marcar o pedido como pago</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q13" value="D"><span class="option-letter">D</span><span class="option-text">Consultar o DICT para confirmar que a chave Pix do pagador ainda está ativa antes de processar</span></label>
+      </div>
+      <div class="explanation">O <strong>endToEndId (E2EID)</strong> é único por transação. Armazenando os E2EIDs já processados, o sistema detecta um reenvio antes de agir. Isso é idempotência no nível de webhook — obrigatória pela Res. BCB 195/2022. Sem isso, um reenvio pode liberar um pedido duas vezes ou dar baixa dupla em uma fatura.</div>
+    </div>
+
+    <!-- Q14 -->
+    <div class="question-card" data-q="14">
+      <div class="question-meta"><span class="question-num" id="qn14">Questão 14</span></div>
+      <div class="question-text">Sobre o txid na API Pix dinâmica, qual afirmação está CORRETA?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q14" value="A"><span class="option-letter">A</span><span class="option-text">Tem entre 26 e 35 chars, é único por CPF/CNPJ do recebedor e vai no payload JSON (não no BR Code)</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q14" value="B"><span class="option-letter">B</span><span class="option-text">Tem exatamente 32 chars, formato E + ISPB + data + hora + aleatório</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q14" value="C"><span class="option-letter">C</span><span class="option-text">É sempre gerado pelo PSP recebedor; o sistema da empresa não pode gerá-lo</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q14" value="D"><span class="option-letter">D</span><span class="option-text">É transmitido diretamente no campo 62-05 do BR Code do QR dinâmico</span></label>
+      </div>
+      <div class="explanation">O txid tem <strong>26–35 chars</strong>, unicidade por CPF/CNPJ do recebedor, e fica <strong>apenas no payload JSON</strong> servido pela URL — nunca no BR Code. Pode ser gerado pelo recebedor ou delegado ao PSP (só em Cob).</div>
+    </div>
+
+    <!-- Q15 -->
+    <div class="question-card" data-q="15">
+      <div class="question-meta"><span class="question-num" id="qn15">Questão 15</span></div>
+      <div class="question-text">Qual status de uma cobrança Pix (Cob/CobV) é final e irreversível — impedindo novos pagamentos?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q15" value="A"><span class="option-letter">A</span><span class="option-text">ATIVA</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q15" value="B"><span class="option-letter">B</span><span class="option-text">REMOVIDO_PELO_PSP</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q15" value="C"><span class="option-letter">C</span><span class="option-text">EXPIRADA</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q15" value="D"><span class="option-letter">D</span><span class="option-text">CONCLUIDA</span></label>
+      </div>
+      <div class="explanation"><strong>CONCLUIDA</strong> é o único status verdadeiramente final e irreversível — indica que o Pix foi confirmado. Uma vez CONCLUIDA, nenhum outro pagamento pode ser feito nessa cobrança. O txid é único por CPF/CNPJ.</div>
+    </div>
+
+    <!-- Q16 -->
+    <div class="question-card" data-q="16">
+      <div class="question-meta"><span class="question-num" id="qn16">Questão 16</span></div>
+      <div class="question-text">A CobV (cobrança com vencimento) impõe qual restrição ao tipo de QR Code?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q16" value="A"><span class="option-letter">A</span><span class="option-text">Deve ser obrigatoriamente estático, pois dados de vencimento ficam no BR Code</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q16" value="B"><span class="option-letter">B</span><span class="option-text">Deve ser obrigatoriamente dinâmico</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q16" value="C"><span class="option-letter">C</span><span class="option-text">Pode ser estático ou dinâmico, a critério do recebedor</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q16" value="D"><span class="option-letter">D</span><span class="option-text">Deve ser composto (Composite), com URL de recorrência obrigatória</span></label>
+      </div>
+      <div class="explanation">A CobV é o "boleto do Pix" e o QR é <strong>obrigatoriamente dinâmico</strong>. Isso porque dados como vencimento, juros, multa e desconto precisam ser calculados em tempo real no servidor, e não podem ser estáticos.</div>
+    </div>
+
+    <!-- Q17 -->
+    <div class="question-card" data-q="17">
+      <div class="question-meta"><span class="question-num" id="qn17">Questão 17</span></div>
+      <div class="question-text">O Art. 3-A incluído na Res. BCB 85/2021 pela Res. 538/2025 exige MFA obrigatório para qual acesso?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q17" value="A"><span class="option-letter">A</span><span class="option-text">Qualquer transação Pix acima de R$5.000 por pessoa física</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q17" value="B"><span class="option-letter">B</span><span class="option-text">Acesso administrativo ao ambiente Pix/SPI (consoles, APIs de gestão, painéis)</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q17" value="C"><span class="option-letter">C</span><span class="option-text">Pagamentos internacionais via Pix cross-border</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q17" value="D"><span class="option-letter">D</span><span class="option-text">Cadastro de novas chaves Pix pelo usuário final</span></label>
+      </div>
+      <div class="explanation">O MFA é exigido para <strong>acesso administrativo ao ambiente SPI</strong> — consoles, APIs de gestão, painéis de monitoramento. Não basta usuário + senha. (Art. 3-A, I, a da Res. BCB 85/2021)</div>
+    </div>
+
+    <!-- Q18 -->
+    <div class="question-card" data-q="18">
+      <div class="question-meta"><span class="question-num" id="qn18">Questão 18</span></div>
+      <div class="question-text">No payload JSON de um QR dinâmico, o campo "apresentacao" deve conter qual valor?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q18" value="A"><span class="option-letter">A</span><span class="option-text">A data e hora em que a cobrança foi criada pelo recebedor via API</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q18" value="B"><span class="option-letter">B</span><span class="option-text">A data de vencimento esperada para o pagamento</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q18" value="C"><span class="option-letter">C</span><span class="option-text">O timestamp de quando o servidor atendeu a requisição — momento da leitura do QR</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q18" value="D"><span class="option-letter">D</span><span class="option-text">A hora prevista de liquidação no SPI</span></label>
+      </div>
+      <div class="explanation">O campo <strong>"apresentacao"</strong> deve ser preenchido pelo servidor no momento de atender a requisição — não é a data de criação. Isso permite ao app pagador verificar expiração em tempo real.</div>
+    </div>
+
+    <!-- Q19 -->
+    <div class="question-card" data-q="19">
+      <div class="question-meta"><span class="question-num" id="qn19">Questão 19</span></div>
+      <div class="question-text">O Token Bucket implementado no DICT tem como objetivo principal:</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q19" value="A"><span class="option-letter">A</span><span class="option-text">Limitar o valor máximo de transferências Pix por usuário por dia</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q19" value="B"><span class="option-letter">B</span><span class="option-text">Prevenir varredura em massa do DICT para mapear CPFs e chaves Pix</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q19" value="C"><span class="option-letter">C</span><span class="option-text">Controlar a velocidade de processamento de mensagens pacs.008 no SPI</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q19" value="D"><span class="option-letter">D</span><span class="option-text">Autenticar as chamadas mTLS da API Pix usando créditos por requisição</span></label>
+      </div>
+      <div class="explanation">O Token Bucket previne <strong>varredura em massa do DICT</strong>. PF tem 100 fichas; PJ, 1.000. Consulta inválida consome 20 fichas. Receber um Pix reabastece. Isso torna inviável o mapeamento sistêmico de CPFs por chaves.</div>
+    </div>
+
+    <!-- Q20 -->
+    <div class="question-card" data-q="20">
+      <div class="question-meta"><span class="question-num" id="qn20">Questão 20</span></div>
+      <div class="question-text">Sobre a idempotência na API Pix e no SPI, qual afirmação está CORRETA segundo a Res. BCB 195/2022?</div>
+      <div class="options">
+        <label class="option-label"><input type="radio" class="option-input" name="q20" value="A"><span class="option-letter">A</span><span class="option-text">A idempotência é opcional — só obrigatória para cobranças acima de R$10.000</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q20" value="B"><span class="option-letter">B</span><span class="option-text">Criar a mesma cobrança com o mesmo txid duas vezes deve criar um duplicata e retornar HTTP 201 novamente</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q20" value="C"><span class="option-letter">C</span><span class="option-text">Todos os sistemas dos participantes devem implementar idempotência — reenvio do mesmo E2EID ou txid não gera duplicata</span></label>
+        <label class="option-label"><input type="radio" class="option-input" name="q20" value="D"><span class="option-letter">D</span><span class="option-text">A idempotência se aplica somente ao webhook, não à API de criação de cobranças</span></label>
+      </div>
+      <div class="explanation"><strong>Art. 17 IV da Res. BCB 195/2022:</strong> idempotência é obrigatória para todos. Na API Pix: mesmo txid → retorna cobrança existente (HTTP 200), não duplicata. No SPI: mesmo E2EID → processado uma vez; reenvio é descartado sem erro.</div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-area">
+      <button type="button" class="btn-submit" id="btnSubmit" disabled>
+        Enviar
+      </button>
+      <div class="unanswered-hint" id="unansweredHint">
+        Responda todas as 20 questões antes de calcular.
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  const ANSWERS = {
+    q1:'B', q2:'B', q3:'C', q4:'B', q5:'B',
+    q6:'B', q7:'C', q8:'C', q9:'B', q10:'C',
+    q11:'C', q12:'C', q13:'C', q14:'A', q15:'D',
+    q16:'B', q17:'B', q18:'C', q19:'B', q20:'C'
+  };
+
+  // ── Breve confirmação para acertos ──
+  const SHORT_EXP = {
+    q1:  'O BR Code é a adaptação brasileira do EMV-QRCPS — o único uso desse padrão no Brasil é o Pix.',
+    q2:  '"L" = comprimento real do valor em decimal zero-padded (2 chars). Tamanho exato, sem padding.',
+    q3:  'A GUI é exatamente "br.gov.bcb.pix" — letras minúsculas, essa ordem. Qualquer variação invalida o QR.',
+    q4:  'Correto. No dinâmico, o campo 25 da faixa 26 carrega uma URL (sem https://). Os dados ficam no JSON.',
+    q5:  'Correto. O QR Dinâmico (Cob) permite valor único por pedido, expiração em segundos e status CONCLUIDA que bloqueia pagamentos duplicados.',
+    q6:  'Exato. O txid é criado pelo recebedor ao gerar a cobrança e retornado no webhook quando o Pix chega. É o elo direto entre pagamento e pedido.',
+    q7:  'DICT = diretório que mapeia chave Pix → banco + agência + conta. O app consulta ele ao ler o QR.',
+    q8:  'Correto. O E2EID é o "número de protocolo" do Pix: com ele qualquer PSP localiza a transação no SPI e pode abrir uma devolução.',
+    q9:  'Vf = Vo − Va − Vd + Vj + Vm. Va = abatimento, Vd = desconto, Vj = juros, Vm = multa.',
+    q10: 'OAuth 2.0 client_credentials gera o token de negócio. mTLS com certificado ICP-Brasil autentica o transporte.',
+    q11: 'Campo opcional sem valor = campo inteiro omitido. Sem "comprimento zero", sem espaços, sem placeholder.',
+    q12: 'Correto. O SPI opera 24/7/365 sem interrupção. É essa disponibilidade que viabiliza cobranças por QR Code a qualquer hora.',
+    q13: 'Correto. Guardar o E2EID processado e checar antes de agir é a implementação clássica de idempotência no receptor de webhook.',
+    q14: 'txid: 26–35 chars, único por CPF/CNPJ do recebedor, presente apenas no JSON da URL — nunca no BR Code.',
+    q15: 'CONCLUIDA é o único status final e irreversível. Nenhum novo pagamento é possível nessa cobrança.',
+    q16: 'CobV é obrigatoriamente dinâmica. Juros, multa e desconto são calculados em tempo real no servidor.',
+    q17: 'MFA obrigatório para acesso administrativo ao ambiente Pix/SPI — Art. 3-A, I, "a" da Res. BCB 85/2021.',
+    q18: '"apresentacao" = timestamp de quando o servidor atende a requisição. O app usa isso para checar expiração.',
+    q19: 'Token Bucket: PF=100 fichas, PJ=1.000. Consulta inválida consome 20. Previne varredura em massa do DICT.',
+    q20: 'Idempotência obrigatória para todos — Res. BCB 195/2022 Art. 17 IV. Mesmo E2EID ou txid não duplica.'
+  };
+
+  // ── Mini-aula para erros ──
+  const LONG_EXP = {
+    q1:  `O <strong>BR Code</strong> é a implementação brasileira de um padrão global chamado <strong>EMV-QRCPS</strong> (Europay, Mastercard, Visa QR Code Payment Specification). O Banco Central adaptou esse padrão para criar o BR Code — e no Brasil, seu único uso é o Pix. Não existe outro arranjo de pagamento usando BR Code no país.<br><br>O <strong>ISO 20022</strong> é um padrão diferente: é o formato das mensagens XML trocadas entre bancos dentro do SPI (o sistema de liquidação em tempo real). O ISO 20022 não tem relação com o formato do QR Code. O PCI-DSS é um padrão de segurança de dados de cartões, não de pagamentos por QR.`,
+
+    q2:  `No formato <strong>TLV (Tag-Length-Value)</strong>, cada campo do BR Code tem exatamente três partes: o <strong>ID</strong> (2 chars — identifica o campo), o <strong>L de comprimento</strong> (2 chars em decimal zero-padded — quantos chars tem o valor) e o <strong>valor</strong> em si.<br><br>O "L" é o tamanho <em>real</em> do valor — não o máximo permitido, não o tipo de dado. Se o valor é "João" (4 chars), o comprimento é "04". Um campo opcional vazio não recebe comprimento "00" — ele é <strong>omitido por inteiro</strong> do payload. Isso mantém o QR compacto.`,
+
+    q3:  `A GUI (Globally Unique Identifier) é o subcampo ID=00 dentro do bloco ID=26 (Merchant Account Info). Ela identifica que aquele QR pertence ao arranjo Pix — e não a outro sistema de pagamento. O valor é exatamente <strong>br.gov.bcb.pix</strong>: letras minúsculas, pontos como separadores, nessa ordem. Qualquer variação (maiúsculas, ordem diferente, ponto a mais ou a menos) e o app do pagador <strong>não reconhece o QR como Pix</strong> e recusa o pagamento.`,
+
+    q4:  `Esta é a diferença central entre os dois tipos. No QR <strong>estático</strong>, todos os dados (chave, valor, nome, cidade) ficam dentro do BR Code. No QR <strong>dinâmico</strong>, o campo 25 do bloco ID=26 contém uma <strong>URL sem o prefixo https://</strong> — o app pagador adiciona o https:// automaticamente antes de acessá-la. Ao escanear, o app faz uma requisição HTTPS para essa URL e recebe um JSON (Cob ou CobV) com o valor, devedor, txid, data de expiração etc. Isso permite valor único por transação, expiração e controle de pagamento duplicado.`,
+
+    q5:  `O <strong>QR Dinâmico (Cob)</strong> resolve exatamente os três requisitos do e-commerce:<br><br>1. <strong>Unicidade por pedido</strong>: cada cobrança tem seu próprio txid e sua própria URL — dois pedidos nunca compartilham o mesmo QR.<br>2. <strong>Expiração</strong>: o campo <code>expiracao</code> no JSON (em segundos) define até quando o QR pode ser pago. Após esse prazo, o servidor retorna erro ao app pagador.<br>3. <strong>Anti-duplicata</strong>: quando o Pix é confirmado, o status da cobrança muda para <strong>CONCLUIDA</strong> — estado irreversível. Qualquer tentativa de pagar o mesmo QR de novo é recusada pelo PSP.<br><br>O QR Estático não tem nenhum desses controles: qualquer pessoa que tiver o QR pode pagar quantas vezes quiser, sem expiração.`,
+
+    q6:  `A <strong>conciliação automática</strong> é um dos maiores ganhos operacionais do Pix para empresas. O fluxo é simples:<br><br>1. O sistema cria uma cobrança via API Pix passando o <strong>txid</strong> (ex: número do pedido + sufixo aleatório).<br>2. O PSP gera a URL dinâmica — o QR Code carrega essa URL.<br>3. Quando o pagador paga, o PSP chama o <strong>webhook</strong> configurado, trazendo o txid no payload.<br>4. O sistema consulta o banco de dados usando o txid → encontra o pedido → marca como pago automaticamente.<br><br>Sem txid, a empresa receberia Pix com apenas o valor — e teria que conciliar manualmente qual pedido corresponde a qual pagamento, o que é inviável em volume.`,
+
+    q7:  `O <strong>DICT</strong> (Diretório de Identificadores de Contas Transacionais) é o coração do Pix: funciona como uma lista telefônica. Dado uma chave Pix (CPF, e-mail, celular, CNPJ ou chave aleatória), o DICT retorna os dados bancários completos (banco, agência, conta) do dono da chave. Quando o app do pagador lê um QR Code, a primeira operação é consultar o DICT com a chave do payload para saber para qual banco/conta enviar o dinheiro.<br><br>Não confundir: o <strong>SPI</strong> é o sistema de liquidação em tempo real (onde o dinheiro transita); a <strong>RSFN</strong> é a rede de comunicação entre bancos.`,
+
+    q8:  `O <strong>E2EID</strong> (End-to-End ID) é o identificador único e global de cada transação Pix — gerado pelo banco do pagador no momento do envio. Pense nele como o "número de protocolo" da transação.<br><br>Na prática, o E2EID serve para:<br>• <strong>Solicitar devolução</strong>: ao abrir um MED (Mecanismo Especial de Devolução) ou devolução operacional, o PSP informa o E2EID da transação original.<br>• <strong>Auditoria e suporte</strong>: com o E2EID, um banco consegue localizar qualquer transação no SPI e responder a contestações de clientes.<br>• <strong>Idempotência no webhook</strong>: o sistema do recebedor usa o E2EID para evitar processar o mesmo pagamento duas vezes se o webhook for reenviado.<br><br>Diferente do txid (criado pelo recebedor, com propósito de conciliação), o E2EID é sempre criado pelo banco emissor e não pode ser escolhido pelo recebedor.`,
+
+    q9:  `A fórmula da CobV é <strong>Vf = Vo − Va − Vd + Vj + Vm</strong>:<br>• <strong>Vo</strong> = valor original da cobrança<br>• <strong>Va</strong> = Abatimento: redução incondicional, sempre aplicada se configurada (ex: desconto comercial)<br>• <strong>Vd</strong> = Desconto: só vale se pago antes ou na data de vencimento<br>• <strong>Vj</strong> = Juros por atraso: acrescido diariamente após o vencimento<br>• <strong>Vm</strong> = Multa: cobrada uma única vez após o vencimento<br><br>Se pago antes do vencimento: Vf = Vo − Va − Vd. Se pago depois: Vf = Vo − Va + Vj + Vm.`,
+
+    q10: `A API Pix exige duas camadas de segurança <em>simultâneas</em>:<br><br><strong>OAuth 2.0</strong> (fluxo client_credentials): o sistema cliente envia client_id + client_secret e recebe um token JWT Bearer com prazo de expiração. Esse token autoriza as operações de negócio (criar cobranças, consultar pagamentos etc.).<br><br><strong>mTLS (mutual TLS)</strong>: na camada de transporte, ambos os lados se autenticam com certificado digital. O certificado do cliente deve ser emitido pela <strong>ICP-Brasil</strong>. Sem o certificado ICP-Brasil, a conexão é recusada mesmo com token OAuth válido.`,
+
+    q11: `No formato TLV do BR Code, "opcional" significa que o campo pode simplesmente não existir no payload. Se não há valor a informar, o campo é <strong>omitido por completo</strong> — sem ID, sem comprimento, sem nada. Não existe "comprimento zero" (ex: ID + "00"), nem padding com espaços. Por exemplo, o campo ID=54 (valor) está ausente em QRs estáticos sem valor predefinido. O parser do app pagador simplesmente não encontra o campo e trata como "não informado". Isso mantém o payload curto e o QR mais fácil de escanear.`,
+
+    q12: `O <strong>SPI</strong> (Sistema de Pagamentos Instantâneos) foi projetado para operar sem interrupção: <strong>24h por dia, 7 dias por semana, 365 dias por ano</strong>. Não há janela de manutenção, não há restrição de dia útil, não há horário de corte.<br><br>Isso é fundamental para o Pix QR Code porque:<br>• Clientes compram em qualquer horário — inclusive madrugadas e feriados nacionais.<br>• A liquidação acontece em segundos, individualmente (LBTR — Liquidação Bruta em Tempo Real).<br>• Não existe "lote da tarde" que trave a conciliação do dia.<br><br>Compare com o TED: funciona apenas em dias úteis, em horários específicos, e em lotes. O STR (Sistema de Transferências de Reservas) opera 24h mas é para liquidações de alto valor entre bancos — o Pix usa o SPI, que é a infraestrutura de varejo instantâneo do Banco Central.`,
+
+    q13: `O PSP pode reenviar notificações de webhook por vários motivos: timeout na primeira tentativa, falha de rede, retry automático após erro HTTP 5xx do servidor receptor. Sem proteção, cada reenvio processaria o pagamento de novo.<br><br>A solução é <strong>idempotência pelo E2EID</strong>:<br>1. Ao receber um webhook, o sistema extrai o <code>endToEndId</code> do payload.<br>2. Consulta o banco de dados: esse E2EID já foi processado?<br>3. Se sim: retorna HTTP 200 sem agir novamente (é o que o PSP espera para parar de reenviar).<br>4. Se não: processa o pagamento e salva o E2EID.<br><br>Essa é a regra da <strong>Res. BCB 195/2022, Art. 17 IV</strong> — idempotência obrigatória para todos os participantes. Aceitar o último webhook "sobrescrevendo" seria perigoso: em teoria, um pedido cancelado poderia ser reaberto por um reenvio tardio.`,
+
+    q14: `O <strong>txid</strong> na API Pix dinâmica tem entre <strong>26 e 35 caracteres</strong> alfanuméricos. Sua unicidade é garantida por <strong>CPF/CNPJ do recebedor</strong> (não globalmente — dois PSPs diferentes podem ter o mesmo txid). Ele fica <strong>somente no payload JSON</strong> da URL dinâmica, nunca no BR Code. Pode ser gerado pelo recebedor ou delegado ao PSP (só em Cob). O formato E+ISPB+data+hora+aleatório é do <strong>E2EID</strong>, que tem 32 chars fixos e um propósito diferente: identificar a transação no SPI.`,
+
+    q15: `Os status de uma cobrança na API Pix: <strong>ATIVA</strong> = pode ser paga; <strong>CONCLUIDA</strong> = pagamento confirmado, estado final e irreversível — nenhum novo pagamento é aceito nessa cobrança; <strong>REMOVIDO_PELO_USUARIO_RECEBEDOR</strong> = cancelada pelo dono da cobrança via API; <strong>REMOVIDO_PELO_PSP</strong> = cancelada pelo banco. Não existe status "EXPIRADA" no modelo da API — cobranças expiradas continuam com status ATIVA, mas o PSP bloqueia novos pagamentos com base no campo "expiracao" do calendário.`,
+
+    q16: `A <strong>CobV</strong> (o "boleto do Pix") é <strong>obrigatoriamente dinâmica</strong> porque seus valores são calculados em tempo real: juros por atraso acumulam dia a dia; o desconto expira em datas específicas; a multa é aplicada após o vencimento. Todos esses cálculos precisam ser feitos pelo servidor do PSP recebedor no momento da leitura do QR. Um QR estático não pode ser atualizado, então é estruturalmente incompatível com a CobV. Base legal: Art. 11-A, II da Res. BCB 1/2020, incluído pela Res. BCB 88/2021.`,
+
+    q17: `O Art. 3-A da Res. BCB 85/2021 (incluído pela Res. 538/2025) define requisitos de segurança para quem opera na RSFN. O item I, alínea "a" exige <strong>MFA para qualquer acesso administrativo ao ambiente Pix/SPI</strong>: consoles de gestão, APIs de administração, painéis de monitoramento. O objetivo é proteger o ambiente contra comprometimento de credenciais. A exigência se aplica ao time de TI/operações do banco — não às transações individuais dos usuários finais. Isso é separado das regras de autenticação de usuário (limite noturno, dispositivos registrados etc.).`,
+
+    q18: `O campo <strong>"apresentacao"</strong> no JSON de um QR dinâmico deve ser preenchido com o timestamp de quando o <strong>servidor atende a requisição</strong> — ou seja, o momento real da leitura do QR pelo app. Não é a data de criação da cobrança (campo "criacao"). O app pagador usa "apresentacao" + o valor do campo "expiracao" (em segundos) para calcular se a cobrança ainda é válida. Se o servidor devolver a data de criação, o prazo seria medido do momento errado — e cobranças poderiam ser pagas fora do prazo ou recusadas prematuramente.`,
+
+    q19: `O <strong>Token Bucket</strong> no DICT funciona assim: cada participante tem um balde com fichas (PF: 100, PJ: 1.000). Cada consulta bem-sucedida consome poucas fichas; uma consulta com chave inexistente consome 20. Receber um Pix reabastece o balde. Isso torna inviável a <strong>varredura sistemática</strong>: uma empresa maliciosa que tentasse consultar milhões de CPFs para descobrir quais têm chave Pix cadastrada esgotaria o balde rapidamente. Sem o Token Bucket, o DICT seria uma fonte explorável de dados pessoais em escala.`,
+
+    q20: `A <strong>idempotência</strong> é obrigatória para todos os participantes do SPI — Res. BCB 195/2022, Art. 17 IV. Isso significa que reenviar a mesma operação não pode gerar duplicata:<br><br>• <strong>API Pix</strong>: criar cobrança com mesmo txid duas vezes → retorna a cobrança existente (HTTP 200), não cria nova (HTTP 201).<br>• <strong>SPI</strong>: enviar duas mensagens pacs.008 com mesmo E2EID → só a primeira é processada; a segunda é descartada sem erro.<br>• <strong>Webhook</strong>: o PSP pode reenviar notificações; o servidor do recebedor deve checar se o endToEndId já foi processado antes de marcar o pedido como pago.`
+  };
+
+  const TOTAL = 20;
+  let answered = 0;
+  let submitted = false;
+
+  // ── Track answers ──
+  document.querySelectorAll('.option-input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (submitted) return;
+      answered = document.querySelectorAll('.option-input:checked').length;
+      updateProgress();
+    });
+  });
+
+  function updateProgress() {
+    const pct = (answered / TOTAL) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = answered + ' / ' + TOTAL + ' respondidas';
+    document.getElementById('btnSubmit').disabled = (answered < TOTAL);
+  }
+
+  // ── Submit ──
+  document.getElementById('btnSubmit').addEventListener('click', () => {
+    const unanswered = TOTAL - document.querySelectorAll('.option-input:checked').length;
+    if (unanswered > 0) {
+      document.getElementById('unansweredHint').style.display = 'block';
+      return;
+    }
+
+    submitted = true;
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('unansweredHint').style.display = 'none';
+
+    let correct = 0;
+    let wrong   = 0;
+    const results = [];
+
+    document.querySelectorAll('.question-card').forEach(card => {
+      const qKey = 'q' + card.dataset.q;
+      const correctVal = ANSWERS[qKey];
+      const selectedInput = card.querySelector('.option-input:checked');
+      const selectedVal = selectedInput ? selectedInput.value : null;
+      const isCorrect = (selectedVal === correctVal);
+
+      // Collect option texts
+      const optionMap = {};
+      card.querySelectorAll('.option-label').forEach(label => {
+        const val = label.querySelector('.option-input').value;
+        optionMap[val] = label.querySelector('.option-text').textContent.trim();
+      });
+
+      // Mark revealed state on question cards
+      card.classList.add('revealed');
+      card.querySelectorAll('.option-label').forEach(label => {
+        const val = label.querySelector('.option-input').value;
+        if (val === correctVal) label.classList.add('is-correct');
+        if (val === selectedVal && !isCorrect) label.classList.add('is-wrong-pick');
+      });
+
+      const numEl = card.querySelector('.question-num');
+      if (isCorrect) {
+        correct++;
+        numEl.textContent = '✓ Questão ' + String(card.dataset.q).padStart(2,'0');
+        numEl.classList.add('q-correct');
+      } else {
+        wrong++;
+        numEl.textContent = '✗ Questão ' + String(card.dataset.q).padStart(2,'0');
+        numEl.classList.add('q-wrong');
+      }
+
+      results.push({
+        num: card.dataset.q,
+        qKey,
+        isCorrect,
+        questionText: card.querySelector('.question-text').textContent.trim(),
+        selectedVal,
+        correctVal,
+        optionMap
+      });
+    });
+
+    buildResultsTable(results);
+    showScore(correct, wrong);
+  });
+
+  // ── Build results table ──
+  function buildResultsTable(results) {
+    const section = document.getElementById('resultsSection');
+    const wrongCount = results.filter(r => !r.isCorrect).length;
+    const correctCount = results.filter(r => r.isCorrect).length;
+
+    let html = `<div class="results-title">
+      📋 Gabarito Comentado
+      <span>${correctCount} corretas · ${wrongCount} para revisar</span>
+    </div>`;
+
+    results.forEach(r => {
+      const num = String(r.num).padStart(2,'0');
+      if (r.isCorrect) {
+        html += `
+        <div class="result-item r-correct">
+          <div class="result-header">
+            <div class="result-icon">✓</div>
+            <span class="result-qnum">Questão ${num}</span>
+            <span class="result-status">Correta</span>
+          </div>
+          <div class="result-body">
+            <div class="result-question">${r.questionText}</div>
+            <div class="result-choices">
+              <div class="result-choice choice-correct">
+                <span class="ch-label">${r.selectedVal}</span>
+                <span class="ch-text">${r.optionMap[r.selectedVal]}</span>
+              </div>
+            </div>
+            <div class="result-note">${SHORT_EXP[r.qKey]}</div>
+          </div>
+        </div>`;
+      } else {
+        html += `
+        <div class="result-item r-wrong">
+          <div class="result-header">
+            <div class="result-icon">✗</div>
+            <span class="result-qnum">Questão ${num}</span>
+            <span class="result-status">Incorreta — revise abaixo</span>
+          </div>
+          <div class="result-body">
+            <div class="result-question">${r.questionText}</div>
+            <div class="result-choices">
+              <div class="result-choice choice-wrong">
+                <span class="ch-label">${r.selectedVal}</span>
+                <span class="ch-text">${r.optionMap[r.selectedVal]}</span>
+              </div>
+              <div class="result-choice choice-correct">
+                <span class="ch-label">${r.correctVal} ✓</span>
+                <span class="ch-text">${r.optionMap[r.correctVal]}</span>
+              </div>
+            </div>
+            <div class="result-lesson">${LONG_EXP[r.qKey]}</div>
+          </div>
+        </div>`;
+      }
+    });
+
+    section.innerHTML = html;
+    section.classList.add('visible');
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Score card ──
+  function showScore(correct, wrong) {
+    const pct = Math.round((correct / TOTAL) * 100);
+    const grade = pct >= 90 ? 'a' : pct >= 70 ? 'b' : pct >= 50 ? 'c' : 'd';
+
+    const labels = { a: 'Excelente!', b: 'Muito bom!', c: 'Regular', d: 'Precisa revisar' };
+    const msgs = {
+      a: 'Domínio completo do conteúdo. Pode atender o cliente com segurança.',
+      b: 'Bom entendimento. Revise os pontos que errou antes da reunião.',
+      c: 'Conhecimento parcial. Recomenda-se reler a aula magna.',
+      d: 'Revise o material de estudo — principalmente BR Code, API Pix e SPI.'
+    };
+
+    const card = document.getElementById('scoreCard');
+    card.className = 'score-card visible grade-' + grade;
+
+    document.getElementById('scorePct').textContent      = pct + '%';
+    document.getElementById('scoreFraction').textContent = correct + ' de ' + TOTAL + ' questões corretas';
+    document.getElementById('scoreLabel').textContent    = labels[grade];
+    document.getElementById('scoreMsg').textContent      = msgs[grade];
+    document.getElementById('bdCorrect').textContent     = correct;
+    document.getElementById('bdWrong').textContent       = wrong;
+    document.getElementById('bdSkipped').textContent     = 0;
+  }
+
+  // Initialize
+  updateProgress();
+</script>
+</body>
+</html>
